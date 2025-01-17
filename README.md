@@ -24,7 +24,7 @@ and outputs the valid ones in a structured JSON format for use in JDownloader2
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/proxy-scraper.git
+git clone https://github.com/imwaitingnow/JDownloader2-.jdproxies-creator.git
 cd proxy-scraper
 
 # Install dependencies
