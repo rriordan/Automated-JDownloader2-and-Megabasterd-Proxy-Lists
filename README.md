@@ -1,38 +1,39 @@
+# Proxy Scraper and Validator
 
-# PROXY-LIST
+This repository contains a script for fetching, validating, and saving proxies in a format compatible with JDownloader2.
+It gathers proxies from https://github.com/TheSpeedX/PROXY-List, validates their functionality,
+and outputs the valid ones in a structured JSON format for use in JDownloader2
 
-This list gets free public proxies that are updated from time to time.  
-I collected them from the Internet for easy access. Remember, I'm not in charge of these proxies.
+## Features
 
-Last Updated: `Friday 17-01-2025 12:23:31 UTC`  
-Total Proxies: `5860`  
-
-## DOWNLOAD
-
-- **SOCKS5**
-
-```bash
-https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt
-```
-
-- **SOCKS4**
-
-```bash
-https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt
-```
-
-- **HTTP**
-
-```bash
-https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt
-```
-
-## NOTES
-
-It is Only For Educational Purposes. Neither I Say Nor I Promote To Do Anything Illegal.  
-Developer Please Give Credits, Stars, And Follow If You Use My SOCKS List.  
-
-You can Also Use My Tool [![SOCKER](https://img.shields.io/badge/TheSpeedX-SOCKER-red)](https://github.com/TheSpeedX/socker) To check for working SOCKS PROXY.
+- Fetch proxies from configurable sources.
+- Validate proxies asynchronously for speed and efficiency.
+- Save valid proxies in a format suitable for use with JDownloader2.
+- Detailed logging for monitoring progress and statistics.
 
 ---
-Made with 🐍 by [![GitHub](https://img.shields.io/badge/GitHub-TheSpeedX-red)](https://github.com/TheSpeedX)
+
+## Installation
+
+### Requirements
+- Python 3.8 or newer
+- `aiohttp`
+- `requests`
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/proxy-scraper.git
+cd proxy-scraper
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Alternatively, install manually
+pip install aiohttp requests
+```
+# credits
+### this script was highly inspired by these GitHub repositories
+#### https://github.com/TheSpeedX/PROXY-List
+#### https://github.com/masterofobzene/JDproxygenerator
