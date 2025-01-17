@@ -33,6 +33,25 @@ pip install -r requirements.txt
 # Alternatively, install manually
 pip install aiohttp requests
 ```
+# usage
+````bash
+# download and validate all proxy lists
+proxy_scraper.py 
+# or 
+proxy_scraper.py --proxy-type all
+````
+````bash
+# download and validate socks5 list
+proxy_scraper.py --proxy-type socks5
+````
+````bash
+# download and validate socks4 list
+proxy_scraper.py --proxy-type socks4
+````
+````bash 
+#download and validate http list
+proxy_scraper.py --proxy-type http
+````
 # credits
 ### this script was highly inspired by these GitHub repositories
 #### https://github.com/TheSpeedX/PROXY-List
