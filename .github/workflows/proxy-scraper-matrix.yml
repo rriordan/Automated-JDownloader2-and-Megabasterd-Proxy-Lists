@@ -1,0 +1,76 @@
+name: Proxy Scraper - Matrix Run
+
+on:
+  schedule:
+    # Run every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      run_all_types:
+        description: 'Run all proxy types separately'
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  scrape-proxies:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        proxy_type: [all, socks5, socks4, http]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run proxy scraper
+      run: |
+        python proxy_scraper.py --proxy-type ${{ matrix.proxy_type }}
+
+    - name: Check if proxy file was generated
+      run: |
+        if [ -f proxylist.jdproxies ]; then
+          echo "Proxy file generated successfully for ${{ matrix.proxy_type }}"
+          echo "File size: $(wc -c < proxylist.jdproxies) bytes"
+        else
+          echo "Error: Proxy file was not generated for ${{ matrix.proxy_type }}"
+          exit 1
+        fi
+
+    - name: Upload proxy list as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: proxy-list-${{ matrix.proxy_type }}-${{ github.run_number }}
+        path: proxylist.jdproxies
+        retention-days: 7
+
+    - name: Commit and push updated proxy list
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        if [ -f proxylist.jdproxies ]; then
+          # Rename file to include proxy type
+          mv proxylist.jdproxies proxylist-${{ matrix.proxy_type }}.jdproxies
+          git add proxylist-${{ matrix.proxy_type }}.jdproxies
+
+          # Only commit if there are changes
+          if git diff --cached --quiet; then
+            echo "No changes to commit for ${{ matrix.proxy_type }}"
+          else
+            git commit -m "Update ${{ matrix.proxy_type }} proxy list - $(date)"
+            git push
+          fi
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
