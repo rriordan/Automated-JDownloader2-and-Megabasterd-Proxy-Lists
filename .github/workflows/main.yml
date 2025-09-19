@@ -1,5 +1,4 @@
-# Create a GitHub Actions workflow file for running the proxy scraper every 6 hours
-workflow_yaml = """name: Proxy Scraper - Scheduled Run
+name: Proxy Scraper - Scheduled Run
 
 on:
   schedule:
@@ -46,7 +45,7 @@ jobs:
         path: proxylist.jdproxies
         retention-days: 7
         
-    - name: Commit and push updated proxy list (optional)
+    - name: Commit and push updated proxy list
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
@@ -64,17 +63,3 @@ jobs:
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-"""
-
-print("Generated GitHub Actions workflow file:")
-print(workflow_yaml)
-
-# Save to file
-with open('.github-workflows-proxy-scraper.yml', 'w') as f:
-    f.write(workflow_yaml)
-
-print("\nWorkflow file saved as '.github-workflows-proxy-scraper.yml'")
-print("\nTo use this workflow:")
-print("1. Create a '.github/workflows' directory in your repository root")
-print("2. Save the workflow as 'proxy-scraper.yml' inside that directory")
-print("3. Commit and push to your repository")
