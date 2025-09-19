@@ -1,0 +1,196 @@
+name: Proxy Scraper - Dual Format Enhanced
+
+on:
+  schedule:
+    # Run every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      proxy_types:
+        description: 'Proxy types to scrape (comma-separated: socks5,socks4,http or "all")'
+        required: true
+        default: 'all'
+        type: string
+      output_format:
+        description: 'Output format'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+        - jdownloader
+        - megabasterd
+        - both
+
+jobs:
+  scrape-proxies-dual-format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      timeout-minutes: 5
+
+    - name: Determine proxy types to run
+      id: proxy-types
+      run: |
+        INPUT="${{ github.event.inputs.proxy_types || 'all' }}"
+        if [ "$INPUT" = "all" ]; then
+          echo "types=socks5,socks4,http" >> $GITHUB_OUTPUT
+        else
+          echo "types=$INPUT" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Check if enhanced script exists
+      id: script-check
+      run: |
+        if [ -f "enhanced_proxy_scraper.py" ]; then
+          echo "script=enhanced_proxy_scraper.py" >> $GITHUB_OUTPUT
+          echo "✅ Using enhanced script (supports JDownloader2 + MegaBasterd)"
+        else
+          echo "script=proxy_scraper.py" >> $GITHUB_OUTPUT
+          echo "ℹ️  Using standard script (JDownloader2 only)"
+        fi
+
+    - name: Run proxy scraper for each type sequentially
+      run: |
+        SCRIPT="${{ steps.script-check.outputs.script }}"
+        IFS=',' read -ra TYPES <<< "${{ steps.proxy-types.outputs.types }}"
+
+        for proxy_type in "${TYPES[@]}"; do
+          echo "🚀 Processing $proxy_type proxies with $SCRIPT..."
+
+          timeout 1800 python "$SCRIPT" --proxy-type "$proxy_type" || echo "⚠️  Timeout for $proxy_type"
+
+          if [ -f proxylist.jdproxies ]; then
+            echo "✅ Generated JDownloader2 proxy list for $proxy_type"
+            cp proxylist.jdproxies "proxylist-$proxy_type.jdproxies"
+            echo "📁 Saved as proxylist-$proxy_type.jdproxies"
+          else
+            echo "❌ No JDownloader2 proxy list generated for $proxy_type"
+          fi
+
+          # Small delay between types
+          sleep 10
+        done
+
+    - name: Create combined JDownloader2 proxy list
+      run: |
+        echo "🔄 Creating combined JDownloader2 proxy list..."
+
+        # Use the same merge script as above
+        cat > merge_proxies.py << 'EOF'
+import json
+import glob
+import sys
+
+def merge_proxy_lists():
+    combined_proxies = []
+    proxy_files = glob.glob("proxylist-*.jdproxies")
+
+    if not proxy_files:
+        print("❌ No individual proxy files found to merge")
+        return False
+
+    print(f"📋 Found {len(proxy_files)} proxy files to merge:")
+
+    for file_path in proxy_files:
+        print(f"   • {file_path}")
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+                proxies = data.get('customProxyList', [])
+                combined_proxies.extend(proxies)
+                print(f"     ✅ Added {len(proxies)} proxies from {file_path}")
+        except Exception as e:
+            print(f"     ❌ Error reading {file_path}: {e}")
+
+    # Remove duplicates and sort
+    seen = set()
+    unique_proxies = []
+
+    for proxy in combined_proxies:
+        proxy_key = f"{proxy['proxy']['address']}:{proxy['proxy']['port']}"
+        if proxy_key not in seen:
+            seen.add(proxy_key)
+            unique_proxies.append(proxy)
+
+    unique_proxies.sort(key=lambda x: x.get('response_time', 999))
+
+    # Statistics
+    print(f"📊 Total proxies: {len(combined_proxies)}")
+    print(f"📊 Unique proxies: {len(unique_proxies)}")
+
+    type_stats = {}
+    for proxy in unique_proxies:
+        proxy_type = proxy['proxy']['type']
+        type_stats[proxy_type] = type_stats.get(proxy_type, 0) + 1
+
+    print("📈 Combined proxy statistics:")
+    for proxy_type, count in sorted(type_stats.items()):
+        print(f"   • {proxy_type}: {count} proxies")
+
+    # Save combined list
+    combined_data = {"customProxyList": unique_proxies}
+    with open('proxylist.jdproxies', 'w') as f:
+        json.dump(combined_data, f, indent=2)
+
+    print(f"✅ Created combined proxy list: proxylist.jdproxies")
+    return True
+
+if __name__ == "__main__":
+    success = merge_proxy_lists()
+    sys.exit(0 if success else 1)
+EOF
+
+        python merge_proxies.py
+
+    - name: Upload all proxy files as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: all-proxy-lists-${{ github.run_number }}
+        path: |
+          proxylist*.jdproxies
+          megabasterd_proxies_*.txt
+        retention-days: 7
+        if-no-files-found: ignore
+
+    - name: Commit and push all proxy files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        git pull origin ${{ github.ref_name }}
+
+        # Add all proxy files (JDownloader2 and MegaBasterd if they exist)
+        git add proxylist*.jdproxies
+        git add megabasterd_proxies_*.txt 2>/dev/null || echo "No MegaBasterd files to add"
+
+        if git diff --cached --quiet; then
+          echo "ℹ️  No changes to commit"
+        else
+          file_count=$(git diff --cached --name-only | wc -l)
+          echo "📝 Committing $file_count proxy file(s)..."
+
+          echo "📋 Files being committed:"
+          git diff --cached --name-only | sed 's/^/   • /'
+
+          git commit -m "Update all proxy lists - $(date '+%Y-%m-%d %H:%M UTC') [$file_count files]"
+          git push origin ${{ github.ref_name }}
+          echo "✅ Successfully pushed all proxy files"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      timeout-minutes: 5
