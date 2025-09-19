@@ -1,0 +1,144 @@
+name: Proxy Scraper - Modified Script Approach
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      proxy_types:
+        description: 'Proxy types: socks5,socks4,http or "all"'
+        required: true
+        default: 'all'
+        type: string
+
+jobs:
+  scrape-proxies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+      timeout-minutes: 5
+
+    - name: Set proxy types
+      id: types
+      run: |
+        INPUT="${{ github.event.inputs.proxy_types || 'all' }}"
+        if [ "$INPUT" = "all" ]; then
+          echo "types=socks5 socks4 http" >> $GITHUB_OUTPUT
+        else
+          echo "types=$(echo $INPUT | tr ',' ' ')" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run proxy scraper for each type and create individual files
+      run: |
+        for type in ${{ steps.types.outputs.types }}; do
+          echo "Processing $type proxies..."
+          timeout 1800 python proxy_scraper.py --proxy-type "$type" || echo "Timeout for $type"
+          if [ -f proxylist.jdproxies ]; then
+            cp proxylist.jdproxies "proxylist-$type.jdproxies"
+            echo "Saved proxylist-$type.jdproxies"
+          fi
+          sleep 10
+        done
+
+    - name: Create combined proxy list with external Python file
+      run: |
+        # Create a temporary Python file to merge proxies
+        cat << 'MERGE_SCRIPT' > temp_merge.py
+import json
+import glob
+import sys
+
+def main():
+    combined_proxies = []
+    proxy_files = glob.glob('proxylist-*.jdproxies')
+
+    if not proxy_files:
+        print('No proxy files found')
+        sys.exit(1)
+
+    print(f'Merging {len(proxy_files)} proxy files...')
+
+    for file_path in proxy_files:
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+                proxies = data.get('customProxyList', [])
+                combined_proxies.extend(proxies)
+                print(f'Added {len(proxies)} proxies from {file_path}')
+        except Exception as e:
+            print(f'Error reading {file_path}: {e}')
+
+    # Remove duplicates
+    seen = set()
+    unique_proxies = []
+
+    for proxy in combined_proxies:
+        try:
+            key = f"{proxy['proxy']['address']}:{proxy['proxy']['port']}"
+            if key not in seen:
+                seen.add(key)
+                unique_proxies.append(proxy)
+        except (KeyError, TypeError):
+            continue
+
+    # Sort by response time
+    unique_proxies.sort(key=lambda x: x.get('response_time', 999))
+
+    # Create combined file
+    combined_data = {'customProxyList': unique_proxies}
+
+    with open('proxylist.jdproxies', 'w') as f:
+        json.dump(combined_data, f, indent=2)
+
+    print(f'Combined {len(unique_proxies)} unique proxies from {len(combined_proxies)} total')
+
+if __name__ == '__main__':
+    main()
+MERGE_SCRIPT
+
+        # Run the merge script
+        python temp_merge.py
+        rm temp_merge.py
+
+    - name: Verify files
+      run: |
+        echo "Generated files:"
+        ls -la proxylist*.jdproxies
+        if [ -f proxylist.jdproxies ]; then
+          size=$(wc -c < proxylist.jdproxies)
+          echo "Combined file size: $size bytes"
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: proxy-lists-${{ github.run_number }}
+        path: proxylist*.jdproxies
+        retention-days: 7
+
+    - name: Commit and push
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git pull origin ${{ github.ref_name }}
+        git add proxylist*.jdproxies
+        if ! git diff --cached --quiet; then
+          file_count=$(git diff --cached --name-only | wc -l)
+          git commit -m "Update proxy lists - $(date '+%Y-%m-%d %H:%M UTC') [$file_count files]"
+          git push origin ${{ github.ref_name }}
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
