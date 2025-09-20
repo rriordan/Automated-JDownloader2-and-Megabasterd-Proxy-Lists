@@ -1,0 +1,61 @@
+{
+  "scraping_session": {
+    "timestamp": "2025-09-20T16:48:24.128652",
+    "duration_seconds": 280.92,
+    "proxy_types_requested": [
+      "socks5",
+      "socks4",
+      "http"
+    ],
+    "configuration": {
+      "timeout": 3,
+      "max_response_time": 3,
+      "batch_size": 500,
+      "max_concurrent_tasks": 2000,
+      "test_endpoint": "http://httpbin.org/ip"
+    }
+  },
+  "source_statistics": {
+    "sources_attempted": 3,
+    "sources_successful": 3,
+    "sources_failed": 0,
+    "raw_proxies_by_type": {
+      "socks5": 2260,
+      "socks4": 3075,
+      "http": 39613
+    },
+    "total_raw_proxies": 44948
+  },
+  "validation_statistics": {
+    "proxies_tested": 11297,
+    "proxies_passed": 449,
+    "proxies_failed": 10848,
+    "timeouts": 9563,
+    "success_rate_percent": 3.97,
+    "filter_efficiency_percent": 1.0
+  },
+  "performance_statistics": {
+    "fastest_response_time": 0.13,
+    "slowest_response_time": 2.994,
+    "average_response_time": 1.663
+  },
+  "output_statistics": {
+    "final_valid_proxies_by_type": {
+      "SOCKS5": 301,
+      "SOCKS4": 47,
+      "HTTP": 101
+    },
+    "total_valid_proxies": 449,
+    "files_created": [
+      "Output\\jdownloader_proxies_all.jdproxies",
+      "Output\\jdownloader_proxies_http.jdproxies",
+      "Output\\jdownloader_proxies_socks4.jdproxies",
+      "Output\\jdownloader_proxies_socks5.jdproxies",
+      "Output\\megabasterd_proxies_all.txt",
+      "Output\\megabasterd_proxies_http.txt",
+      "Output\\megabasterd_proxies_socks4.txt",
+      "Output\\megabasterd_proxies_socks5.txt"
+    ],
+    "total_files_created": 8
+  }
+}
