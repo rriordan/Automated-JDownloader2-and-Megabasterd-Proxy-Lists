@@ -1,0 +1,164 @@
+name: Complete Proxy Scraper - 8 Files
+
+on:
+  schedule:
+    # Run every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      proxy_types:
+        description: 'Proxy types to scrape'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - http
+        - socks4
+        - socks5
+
+jobs:
+  scrape-proxies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      timeout-minutes: 5
+
+    - name: Run complete proxy scraper
+      run: |
+        PROXY_TYPE="${{ github.event.inputs.proxy_types || 'all' }}"
+        echo "🚀 Running complete proxy scraper for: $PROXY_TYPE"
+
+        timeout 5400 python complete_proxy_scraper.py --proxy-type "$PROXY_TYPE" || {
+          echo "⚠️ Script timed out after 90 minutes"
+          echo "This may be normal for large proxy lists"
+        }
+      timeout-minutes: 85
+
+    - name: Verify Output folder and files
+      run: |
+        echo "📁 Checking Output folder contents..."
+
+        if [ -d "Output" ]; then
+          echo "✅ Output folder exists"
+          echo "📊 Files in Output folder:"
+          ls -la Output/ | grep -E '\.(jdproxies|txt)$' || echo "No proxy files found"
+
+          # Count files
+          jd_files=$(ls Output/*.jdproxies 2>/dev/null | wc -l)
+          mb_files=$(ls Output/*.txt 2>/dev/null | wc -l)
+          total_files=$((jd_files + mb_files))
+
+          echo "📈 File summary:"
+          echo "   • JDownloader2 files: $jd_files"
+          echo "   • MegaBasterd files: $mb_files"
+          echo "   • Total files: $total_files"
+
+          # Show file sizes
+          if [ $total_files -gt 0 ]; then
+            echo "📋 File sizes:"
+            for file in Output/*.jdproxies Output/*.txt; do
+              if [ -f "$file" ]; then
+                size=$(wc -c < "$file" 2>/dev/null || echo "0")
+                echo "   • $(basename "$file"): $size bytes"
+              fi
+            done
+          fi
+        else
+          echo "❌ Output folder not found"
+          echo "Creating empty Output folder for artifacts..."
+          mkdir -p Output
+          echo "No proxy files were generated" > Output/generation_failed.txt
+        fi
+
+    - name: Upload all proxy files as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: complete-proxy-lists-${{ github.run_number }}
+        path: Output/
+        retention-days: 7
+        if-no-files-found: warn
+
+    - name: Commit and push Output folder
+      run: |
+        # Configure git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        # Pull latest changes first
+        echo "🔄 Pulling latest changes..."
+        git pull origin ${{ github.ref_name }} || {
+          echo "⚠️ Could not pull latest changes, continuing..."
+        }
+
+        # Add Output folder and contents
+        echo "📁 Adding Output folder to git..."
+        git add Output/
+
+        # Check if there are changes to commit
+        if git diff --cached --quiet; then
+          echo "ℹ️ No changes to commit"
+        else
+          # Count files being committed
+          file_count=$(git diff --cached --name-only | wc -l)
+          echo "📝 Committing $file_count file(s) from Output folder"
+
+          # Show what's being committed
+          echo "📋 Files being committed:"
+          git diff --cached --name-only | sed 's/^/   • /'
+
+          # Create commit message with timestamp and proxy type
+          proxy_type="${{ github.event.inputs.proxy_types || 'all' }}"
+          commit_msg="Update proxy lists ($proxy_type) - $(date '+%Y-%m-%d %H:%M UTC') [$file_count files]"
+
+          git commit -m "$commit_msg"
+          git push origin ${{ github.ref_name }}
+          echo "✅ Successfully pushed Output folder to repository"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      timeout-minutes: 5
+
+    - name: Summary report
+      if: always()
+      run: |
+        echo "🎉 WORKFLOW SUMMARY"
+        echo "==================="
+        echo "📅 Run date: $(date '+%Y-%m-%d %H:%M UTC')"
+        echo "🎯 Proxy type: ${{ github.event.inputs.proxy_types || 'all' }}"
+        echo "📁 Output folder: Output/"
+
+        if [ -d "Output" ]; then
+          file_count=$(ls Output/*.jdproxies Output/*.txt 2>/dev/null | wc -l || echo "0")
+          echo "📊 Files generated: $file_count"
+          echo "📦 Artifact: complete-proxy-lists-${{ github.run_number }}"
+          echo "🔗 Check the Actions tab to download the proxy files"
+        else
+          echo "❌ No Output folder found - check logs for errors"
+        fi
+
+        echo ""
+        echo "🎯 Expected Output (when successful):"
+        echo "   • Output/jdownloader_proxies_all.jdproxies"
+        echo "   • Output/jdownloader_proxies_http.jdproxies"
+        echo "   • Output/jdownloader_proxies_socks4.jdproxies"
+        echo "   • Output/jdownloader_proxies_socks5.jdproxies"
+        echo "   • Output/megabasterd_proxies_all.txt"
+        echo "   • Output/megabasterd_proxies_http.txt"
+        echo "   • Output/megabasterd_proxies_socks4.txt"
+        echo "   • Output/megabasterd_proxies_socks5.txt"

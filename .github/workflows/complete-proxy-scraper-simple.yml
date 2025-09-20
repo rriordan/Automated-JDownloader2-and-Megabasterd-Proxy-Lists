@@ -1,0 +1,63 @@
+name: Complete Proxy Scraper - Simple
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      proxy_types:
+        description: 'Proxy types'
+        default: 'all'
+        type: choice
+        options: [all, http, socks4, socks5]
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run proxy scraper
+      run: |
+        TYPE="${{ github.event.inputs.proxy_types || 'all' }}"
+        echo "Running for proxy type: $TYPE"
+        timeout 5000 python complete_proxy_scraper.py --proxy-type "$TYPE"
+
+    - name: Check results
+      run: |
+        echo "Generated files:"
+        ls -la Output/ 2>/dev/null || echo "No Output folder found"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: proxy-files-${{ github.run_number }}
+        path: Output/
+        retention-days: 7
+        if-no-files-found: warn
+
+    - name: Commit and push
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git pull origin ${{ github.ref_name }}
+        git add Output/
+        if ! git diff --cached --quiet; then
+          git commit -m "Update proxy files - $(date '+%Y-%m-%d %H:%M UTC')"
+          git push origin ${{ github.ref_name }}
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
