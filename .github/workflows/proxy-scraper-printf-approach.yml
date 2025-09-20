@@ -1,0 +1,188 @@
+name: Proxy Scraper - Printf Approach
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      proxy_types:
+        description: 'Proxy types: socks5,socks4,http or "all"'
+        required: true
+        default: 'all'
+        type: string
+
+jobs:
+  scrape-proxies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+      timeout-minutes: 5
+
+    - name: Set proxy types
+      id: types
+      run: |
+        INPUT="${{ github.event.inputs.proxy_types || 'all' }}"
+        if [ "$INPUT" = "all" ]; then
+          echo "types=socks5 socks4 http" >> $GITHUB_OUTPUT
+        else
+          echo "types=$(echo $INPUT | tr ',' ' ')" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run proxy scraper for each type
+      run: |
+        for type in ${{ steps.types.outputs.types }}; do
+          echo "Processing $type proxies..."
+          timeout 1800 python proxy_scraper.py --proxy-type "$type" || echo "Timeout for $type"
+          if [ -f proxylist.jdproxies ]; then
+            cp proxylist.jdproxies "proxylist-$type.jdproxies"
+            echo "Saved proxylist-$type.jdproxies"
+          fi
+          sleep 10
+        done
+
+    - name: Create merge script using printf
+      run: |
+        cat > merge.py << 'PYTHON_SCRIPT'
+import json
+import glob
+import sys
+
+def main():
+    print("Starting proxy merge process...")
+
+    # Find all individual proxy files
+    proxy_files = glob.glob("proxylist-*.jdproxies")
+
+    if not proxy_files:
+        print("No individual proxy files found to merge")
+        sys.exit(1)
+
+    print(f"Found {len(proxy_files)} proxy files to merge")
+
+    # Collect all proxies
+    all_proxies = []
+    for file_path in proxy_files:
+        print(f"Reading {file_path}...")
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+                proxies = data.get('customProxyList', [])
+                all_proxies.extend(proxies)
+                print(f"  Added {len(proxies)} proxies")
+        except Exception as e:
+            print(f"  Error reading {file_path}: {e}")
+            continue
+
+    if not all_proxies:
+        print("No proxies found in any file")
+        sys.exit(1)
+
+    print(f"Total proxies collected: {len(all_proxies)}")
+
+    # Remove duplicates based on address:port
+    seen = set()
+    unique_proxies = []
+
+    for proxy in all_proxies:
+        try:
+            address = proxy['proxy']['address']
+            port = proxy['proxy']['port']
+            key = f"{address}:{port}"
+
+            if key not in seen:
+                seen.add(key)
+                unique_proxies.append(proxy)
+        except (KeyError, TypeError) as e:
+            print(f"Skipping malformed proxy: {e}")
+            continue
+
+    print(f"Unique proxies after deduplication: {len(unique_proxies)}")
+    print(f"Duplicates removed: {len(all_proxies) - len(unique_proxies)}")
+
+    # Sort by response time (fastest first)
+    unique_proxies.sort(key=lambda x: x.get('response_time', 999))
+
+    # Create combined proxy list
+    combined_data = {
+        "customProxyList": unique_proxies
+    }
+
+    # Save to file
+    with open('proxylist.jdproxies', 'w') as f:
+        json.dump(combined_data, f, indent=2)
+
+    print(f"Successfully created combined proxy list with {len(unique_proxies)} proxies")
+
+    # Show statistics by proxy type
+    type_stats = {}
+    for proxy in unique_proxies:
+        proxy_type = proxy.get('proxy', {}).get('type', 'UNKNOWN')
+        type_stats[proxy_type] = type_stats.get(proxy_type, 0) + 1
+
+    print("Proxy statistics by type:")
+    for proxy_type, count in sorted(type_stats.items()):
+        print(f"  {proxy_type}: {count} proxies")
+
+if __name__ == '__main__':
+    main()
+PYTHON_SCRIPT
+
+        python merge.py
+
+    - name: Verify files
+      run: |
+        echo "Generated files:"
+        ls -la proxylist*.jdproxies
+        if [ -f proxylist.jdproxies ]; then
+          size=$(wc -c < proxylist.jdproxies)
+          echo "Combined file size: $size bytes"
+
+          # Count proxies safely
+          proxy_count=$(python -c "
+try:
+    import json
+    with open('proxylist.jdproxies', 'r') as f:
+        data = json.load(f)
+        print(len(data.get('customProxyList', [])))
+except:
+    print('0')
+" 2>/dev/null || echo "0")
+          echo "Total proxies in combined file: $proxy_count"
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: proxy-lists-${{ github.run_number }}
+        path: proxylist*.jdproxies
+        retention-days: 7
+
+    - name: Commit and push
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git pull origin ${{ github.ref_name }}
+        git add proxylist*.jdproxies
+        if ! git diff --cached --quiet; then
+          file_count=$(git diff --cached --name-only | wc -l)
+          echo "Committing $file_count proxy file(s):"
+          git diff --cached --name-only | sed 's/^/  /'
+          git commit -m "Update proxy lists - $(date '+%Y-%m-%d %H:%M UTC') [$file_count files]"
+          git push origin ${{ github.ref_name }}
+          echo "Successfully pushed proxy lists"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
