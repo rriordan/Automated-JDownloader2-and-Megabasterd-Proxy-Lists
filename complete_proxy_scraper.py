@@ -11,7 +11,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from collections import defaultdict
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(
@@ -42,6 +42,73 @@ class ProxyRecord:
     reconnectSupported: bool = False
     enabled: bool = True
     response_time: float = 0.0
+
+@dataclass
+class TimingStats:
+    """Detailed timing statistics for different stages"""
+    # Overall timing
+    total_start_time: float
+    total_end_time: float = 0.0
+
+    # Stage timing
+    fetching_start_time: float = 0.0
+    fetching_end_time: float = 0.0
+    deduplication_start_time: float = 0.0
+    deduplication_end_time: float = 0.0
+    validation_start_time: float = 0.0
+    validation_end_time: float = 0.0
+    saving_start_time: float = 0.0
+    saving_end_time: float = 0.0
+    reporting_start_time: float = 0.0
+    reporting_end_time: float = 0.0
+
+    # Validation progress tracking
+    validation_batches_completed: int = 0
+    validation_total_batches: int = 0
+    validation_current_batch_start: float = 0.0
+
+    @property
+    def total_duration(self) -> float:
+        return self.total_end_time - self.total_start_time if self.total_end_time > 0 else time.time() - self.total_start_time
+
+    @property
+    def fetching_duration(self) -> float:
+        return self.fetching_end_time - self.fetching_start_time if self.fetching_end_time > 0 else 0.0
+
+    @property
+    def deduplication_duration(self) -> float:
+        return self.deduplication_end_time - self.deduplication_start_time if self.deduplication_end_time > 0 else 0.0
+
+    @property
+    def validation_duration(self) -> float:
+        return self.validation_end_time - self.validation_start_time if self.validation_end_time > 0 else 0.0
+
+    @property
+    def saving_duration(self) -> float:
+        return self.saving_end_time - self.saving_start_time if self.saving_end_time > 0 else 0.0
+
+    @property
+    def reporting_duration(self) -> float:
+        return self.reporting_end_time - self.reporting_start_time if self.reporting_end_time > 0 else 0.0
+
+    def get_validation_eta(self, proxies_processed: int, total_proxies: int) -> float:
+        """Calculate ETA for validation based on current progress"""
+        if proxies_processed == 0 or self.validation_start_time == 0:
+            return 0.0
+
+        elapsed = time.time() - self.validation_start_time
+        rate = proxies_processed / elapsed  # proxies per second
+        remaining = total_proxies - proxies_processed
+
+        return remaining / rate if rate > 0 else 0.0
+
+    def get_processing_rate(self, proxies_processed: int) -> float:
+        """Calculate current processing rate in proxies per second"""
+        if proxies_processed == 0 or self.validation_start_time == 0:
+            return 0.0
+
+        elapsed = time.time() - self.validation_start_time
+        return proxies_processed / elapsed if elapsed > 0 else 0.0
 
 @dataclass
 class ScrapingStats:
@@ -78,6 +145,9 @@ class ScrapingStats:
     # Files created
     files_created: List[str] = None
 
+    # Timing statistics
+    timing: TimingStats = None
+
     def __post_init__(self):
         if self.raw_proxies_fetched is None:
             self.raw_proxies_fetched = {}
@@ -85,10 +155,12 @@ class ScrapingStats:
             self.final_valid_proxies = {}
         if self.files_created is None:
             self.files_created = []
+        if self.timing is None:
+            self.timing = TimingStats(total_start_time=self.start_time)
 
     @property
     def total_duration(self) -> float:
-        return self.end_time - self.start_time
+        return self.end_time - self.start_time if self.end_time > 0 else time.time() - self.start_time
 
     @property
     def success_rate(self) -> float:
@@ -236,10 +308,14 @@ class ProxyScraper:
         self.proxy_types = proxy_types
         self.semaphore = asyncio.Semaphore(ProxyScraperConfig.MAX_CONCURRENT_TASKS)
 
-        # Initialize statistics tracking
+        # Initialize statistics tracking with enhanced timing
         self.stats = ScrapingStats(start_time=time.time())
         self.failed_proxies = []
         self.timeout_proxies = []
+
+        # Progress tracking for live updates
+        self.last_progress_update = time.time()
+        self.progress_update_interval = 5  # seconds
 
         # Create output directory if it doesn't exist
         ProxyScraperConfig.OUTPUT_DIR.mkdir(exist_ok=True)
@@ -269,6 +345,25 @@ class ProxyScraper:
         )
 
         return ProxyRecord(proxy=preferences, response_time=0.0)
+
+    def format_duration(self, seconds: float) -> str:
+        """Format duration in human-readable format"""
+        if seconds < 60:
+            return f"{seconds:.1f}s"
+        elif seconds < 3600:
+            minutes = int(seconds // 60)
+            secs = int(seconds % 60)
+            return f"{minutes}m {secs}s"
+        else:
+            hours = int(seconds // 3600)
+            minutes = int((seconds % 3600) // 60)
+            return f"{hours}h {minutes}m"
+
+    def format_eta(self, eta_seconds: float) -> str:
+        """Format ETA in human-readable format"""
+        if eta_seconds <= 0:
+            return "Unknown"
+        return self.format_duration(eta_seconds)
 
     async def _test_proxy(self, proxy_url: str, session: aiohttp.ClientSession) -> Tuple[bool, float, str]:
         try:
@@ -318,7 +413,12 @@ class ProxyScraper:
                 return None
 
     async def validate_proxies(self, proxies: List[ProxyRecord]) -> List[ProxyRecord]:
-        logger.info(f"Starting validation of {len(proxies)} unique proxies...")
+        total_proxies = len(proxies)
+        logger.info(f"Starting validation of {total_proxies:,} unique proxies...")
+
+        # Start validation timing
+        self.stats.timing.validation_start_time = time.time()
+        self.stats.timing.validation_total_batches = (total_proxies + ProxyScraperConfig.BATCH_SIZE - 1) // ProxyScraperConfig.BATCH_SIZE
 
         connector = aiohttp.TCPConnector(
             limit=0,  # No limit
@@ -332,15 +432,45 @@ class ProxyScraper:
             valid_proxies = []
 
             for i in range(0, len(tasks), ProxyScraperConfig.BATCH_SIZE):
+                batch_start_time = time.time()
                 batch = tasks[i:i + ProxyScraperConfig.BATCH_SIZE]
                 results = await asyncio.gather(*batch, return_exceptions=True)
 
                 valid_batch = [r for r in results if r is not None and not isinstance(r, Exception)]
                 valid_proxies.extend(valid_batch)
 
-                progress = min(100, (i + len(batch)) / len(tasks) * 100)
-                avg_time = sum(p.response_time for p in valid_proxies) / len(valid_proxies) if valid_proxies else 0
-                logger.info(f"Progress: {progress:.1f}% - Valid: {len(valid_proxies)} - Avg Time: {avg_time:.2f}s")
+                # Update batch progress
+                self.stats.timing.validation_batches_completed += 1
+                batch_time = time.time() - batch_start_time
+
+                # Calculate progress and ETA
+                proxies_processed = min(i + len(batch), total_proxies)
+                progress = (proxies_processed / total_proxies) * 100
+
+                # Calculate rates and ETA
+                processing_rate = self.stats.timing.get_processing_rate(proxies_processed)
+                eta_seconds = self.stats.timing.get_validation_eta(proxies_processed, total_proxies)
+
+                # Enhanced progress logging with timing info
+                current_time = time.time()
+                if current_time - self.last_progress_update >= self.progress_update_interval:
+                    avg_response_time = sum(p.response_time for p in valid_proxies) / len(valid_proxies) if valid_proxies else 0
+
+                    elapsed = current_time - self.stats.timing.validation_start_time
+
+                    logger.info(f"VALIDATION: {progress:.1f}% | "
+                              f"Valid: {len(valid_proxies):,} | "
+                              f"Rate: {processing_rate:.1f} p/s | "
+                              f"Elapsed: {self.format_duration(elapsed)} | "
+                              f"ETA: {self.format_eta(eta_seconds)} | "
+                              f"Batch: {batch_time:.1f}s | "
+                              f"Avg RT: {avg_response_time:.2f}s")
+
+                    self.last_progress_update = current_time
+
+            # End validation timing
+            self.stats.timing.validation_end_time = time.time()
+            validation_duration = self.stats.timing.validation_duration
 
             # Calculate performance statistics
             if valid_proxies:
@@ -349,6 +479,13 @@ class ProxyScraper:
                 self.stats.slowest_response_time = max(response_times)
                 self.stats.average_response_time = sum(response_times) / len(response_times)
 
+            # Final validation summary
+            final_rate = total_proxies / validation_duration if validation_duration > 0 else 0
+            logger.info(f"VALIDATION COMPLETE: {len(valid_proxies):,}/{total_proxies:,} valid | "
+                       f"Duration: {self.format_duration(validation_duration)} | "
+                       f"Rate: {final_rate:.1f} p/s | "
+                       f"Success: {self.stats.success_rate:.1f}%")
+
             return sorted(valid_proxies, key=lambda x: x.response_time)
 
     def fetch_proxies_from_url(self, source: Dict) -> List[ProxyRecord]:
@@ -356,8 +493,10 @@ class ProxyScraper:
         source_url = source['url']
         self.stats.sources_attempted += 1
 
+        fetch_start = time.time()
+
         try:
-            logger.info(f"Fetching {source_type} proxies from {source_url}")
+            logger.info(f"FETCHING: {source_type} from {source_url.split('/')[-1]}")
             response = self.session.get(source_url, timeout=ProxyScraperConfig.TIMEOUT)
             response.raise_for_status()
 
@@ -385,17 +524,21 @@ class ProxyScraper:
                     continue
 
             # Update statistics
+            fetch_duration = time.time() - fetch_start
             duplicates_in_source = raw_count - len(proxy_list)
             if source_type not in self.stats.raw_proxies_fetched:
                 self.stats.raw_proxies_fetched[source_type] = 0
             self.stats.raw_proxies_fetched[source_type] += len(proxy_list)
             self.stats.sources_successful += 1
 
-            logger.info(f"Fetched {len(proxy_list)} unique {source_type} proxies ({duplicates_in_source} duplicates removed)")
+            logger.info(f"FETCHED: {len(proxy_list):,} {source_type} proxies in {fetch_duration:.1f}s "
+                       f"({duplicates_in_source} dupes removed)")
             return proxy_list
 
         except Exception as e:
-            logger.error(f"Error fetching {source_type} proxies from {source_url}: {e}")
+            fetch_duration = time.time() - fetch_start
+            logger.error(f"FETCH ERROR: {source_type} from {source_url.split('/')[-1]} "
+                        f"in {fetch_duration:.1f}s - {e}")
             self.stats.sources_failed += 1
             if source_type not in self.stats.raw_proxies_fetched:
                 self.stats.raw_proxies_fetched[source_type] = 0
@@ -431,7 +574,7 @@ class ProxyScraper:
             json.dump(output, f, indent=2, ensure_ascii=False)
 
         self.stats.files_created.append(str(filename))
-        logger.info(f"Saved {len(filtered_proxies)} {proxy_type_filter or 'total'} proxies to {filename}")
+        logger.info(f"SAVED: {len(filtered_proxies):,} {proxy_type_filter or 'total'} proxies to {filename.name}")
 
     def _save_megabasterd_file(self, proxies: List[ProxyRecord], filename: Path, proxy_type_filter: str = None):
         """Save proxies in MegaBasterd format with optional type filtering"""
@@ -453,10 +596,12 @@ class ProxyScraper:
             f.write('\n'.join(proxy_lines))
 
         self.stats.files_created.append(str(filename))
-        logger.info(f"Saved {len(filtered_proxies)} {proxy_type_filter or 'total'} proxies to {filename}")
+        logger.info(f"SAVED: {len(filtered_proxies):,} {proxy_type_filter or 'total'} proxies to {filename.name}")
 
     def save_all_proxy_files(self, proxies: List[ProxyRecord]):
         """Save proxies in both JDownloader2 and MegaBasterd formats (8 files total)"""
+        self.stats.timing.saving_start_time = time.time()
+
         valid_proxies = [p for p in proxies if p.proxy.type != "NONE"]
 
         if not valid_proxies:
@@ -478,8 +623,8 @@ class ProxyScraper:
 
         logger.info("\nFinal Proxy Distribution:")
         for proxy_type, count in sorted(type_stats.items()):
-            logger.info(f"   {proxy_type}: {count} proxies")
-        logger.info(f"   TOTAL: {len(valid_proxies)} valid proxies")
+            logger.info(f"   {proxy_type}: {count:,} proxies")
+        logger.info(f"   TOTAL: {len(valid_proxies):,} valid proxies")
 
         # Save JDownloader2 files (4 files)
         logger.info("\nSaving JDownloader2 Files:")
@@ -495,9 +640,15 @@ class ProxyScraper:
         self._save_megabasterd_file(valid_proxies, ProxyScraperConfig.MB_SOCKS4_FILENAME, "SOCKS4")
         self._save_megabasterd_file(valid_proxies, ProxyScraperConfig.MB_SOCKS5_FILENAME, "SOCKS5")
 
+        self.stats.timing.saving_end_time = time.time()
+        saving_duration = self.stats.timing.saving_duration
+        logger.info(f"\nFile saving completed in {self.format_duration(saving_duration)}")
+
     def generate_comprehensive_report(self):
-        """Generate detailed JSON and text reports with proper UTF-8 encoding"""
+        """Generate detailed JSON and text reports with enhanced timing information - FIXED UNICODE"""
+        self.stats.timing.reporting_start_time = time.time()
         self.stats.end_time = time.time()
+        self.stats.timing.total_end_time = self.stats.end_time
 
         # Calculate final statistics
         self.stats.total_raw_proxies = sum(self.stats.raw_proxies_fetched.values())
@@ -508,7 +659,7 @@ class ProxyScraper:
             if proxy_type in ProxyScraperConfig.ALL_PROXY_SOURCES:
                 total_sources_by_type[proxy_type] = len(ProxyScraperConfig.ALL_PROXY_SOURCES[proxy_type])
 
-        # Create comprehensive JSON report
+        # Create comprehensive JSON report with timing details
         report_data = {
             "scraping_session": {
                 "timestamp": datetime.now().isoformat(),
@@ -522,6 +673,19 @@ class ProxyScraper:
                     "max_concurrent_tasks": ProxyScraperConfig.MAX_CONCURRENT_TASKS,
                     "test_endpoint": ProxyScraperConfig.TEST_URL
                 }
+            },
+            "timing_breakdown": {
+                "total_duration": round(self.stats.timing.total_duration, 2),
+                "fetching_duration": round(self.stats.timing.fetching_duration, 2),
+                "deduplication_duration": round(self.stats.timing.deduplication_duration, 2),
+                "validation_duration": round(self.stats.timing.validation_duration, 2),
+                "saving_duration": round(self.stats.timing.saving_duration, 2),
+                "reporting_duration": 0.0,  # Will be updated after report generation
+            },
+            "processing_rates": {
+                "total_proxies_per_second": round(self.stats.total_raw_proxies / self.stats.timing.total_duration, 2) if self.stats.timing.total_duration > 0 else 0,
+                "validation_proxies_per_second": round(self.stats.proxies_tested / self.stats.timing.validation_duration, 2) if self.stats.timing.validation_duration > 0 else 0,
+                "sources_per_second": round(self.stats.sources_attempted / self.stats.timing.fetching_duration, 2) if self.stats.timing.fetching_duration > 0 else 0
             },
             "source_statistics": {
                 "sources_attempted": self.stats.sources_attempted,
@@ -551,18 +715,32 @@ class ProxyScraper:
             }
         }
 
-        # Save JSON report with UTF-8 encoding
+        # Save JSON report with UTF-8 encoding - FIXED
         with open(ProxyScraperConfig.REPORT_FILENAME, 'w', encoding='utf-8') as f:
             json.dump(report_data, f, indent=2, ensure_ascii=False)
 
-        # Create human-readable summary WITHOUT Unicode emojis for Windows compatibility
+        # Create enhanced human-readable summary with detailed timing - NO UNICODE EMOJIS
         summary_lines = [
             "="*80,
-            "ENHANCED PROXY SCRAPING SUMMARY REPORT",
+            "ENHANCED PROXY SCRAPING PERFORMANCE REPORT",
             "="*80,
             f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}",
-            f"Total Duration: {self.stats.total_duration:.1f} seconds",
+            f"Total Duration: {self.format_duration(self.stats.timing.total_duration)}",
             f"Proxy Types: {', '.join(self.proxy_types)}",
+            "",
+            "TIMING BREAKDOWN",
+            "-" * 50,
+            f"Source Fetching: {self.format_duration(self.stats.timing.fetching_duration)}",
+            f"Cross-Source Deduplication: {self.format_duration(self.stats.timing.deduplication_duration)}",
+            f"Proxy Validation: {self.format_duration(self.stats.timing.validation_duration)}",
+            f"File Saving: {self.format_duration(self.stats.timing.saving_duration)}",
+            f"Report Generation: {self.format_duration(self.stats.timing.reporting_duration)}",
+            "",
+            "PROCESSING RATES",
+            "-" * 50,
+            f"Overall Rate: {self.stats.total_raw_proxies / self.stats.timing.total_duration:.1f} proxies/second" if self.stats.timing.total_duration > 0 else "Overall Rate: N/A",
+            f"Validation Rate: {self.stats.proxies_tested / self.stats.timing.validation_duration:.1f} proxies/second" if self.stats.timing.validation_duration > 0 else "Validation Rate: N/A",
+            f"Source Fetching Rate: {self.stats.sources_attempted / self.stats.timing.fetching_duration:.1f} sources/second" if self.stats.timing.fetching_duration > 0 else "Source Fetching Rate: N/A",
             "",
             "SOURCE STATISTICS (GitHub Sources Only)",
             "-" * 50,
@@ -634,9 +812,9 @@ class ProxyScraper:
         summary_lines.extend([
             "",
             "="*80,
-            "ENHANCED WITH MULTIPLE GITHUB SOURCES",
+            "ENHANCED WITH PERFORMANCE MONITORING",
             f"Total GitHub sources used: {sum(total_sources_by_type.values()) if total_sources_by_type else 0}",
-            "This provides much better coverage and reliability!",
+            "Live ETA, processing rates, and detailed timing provided!",
             "",
             "Report files saved:",
             f"- {ProxyScraperConfig.REPORT_FILENAME} (Detailed JSON)",
@@ -646,19 +824,32 @@ class ProxyScraper:
 
         summary_text = "\n".join(summary_lines)
 
-        # Save text summary with UTF-8 encoding
+        # Save text summary with UTF-8 encoding - FIXED
         with open(ProxyScraperConfig.REPORT_SUMMARY_FILENAME, 'w', encoding='utf-8') as f:
             f.write(summary_text)
 
-        # Also log the summary to console (without emojis)
-        logger.info("\n" + summary_text)
+        self.stats.timing.reporting_end_time = time.time()
 
-        logger.info(f"\nDetailed reports saved:")
-        logger.info(f"   JSON Report: {ProxyScraperConfig.REPORT_FILENAME}")
-        logger.info(f"   Summary Report: {ProxyScraperConfig.REPORT_SUMMARY_FILENAME}")
+        # Update JSON report with final reporting duration
+        report_data["timing_breakdown"]["reporting_duration"] = round(self.stats.timing.reporting_duration, 2)
+        with open(ProxyScraperConfig.REPORT_FILENAME, 'w', encoding='utf-8') as f:
+            json.dump(report_data, f, indent=2, ensure_ascii=False)
+
+        # Also log the summary to console (condensed version) - NO UNICODE EMOJIS
+        logger.info(f"\n" + "="*80)
+        logger.info("SCRAPING COMPLETED - PERFORMANCE SUMMARY")
+        logger.info("="*80)
+        logger.info(f"Total Duration: {self.format_duration(self.stats.timing.total_duration)}")
+        logger.info(f"Validation: {self.format_duration(self.stats.timing.validation_duration)} "
+                   f"({self.stats.proxies_tested / self.stats.timing.validation_duration:.1f} p/s)" if self.stats.timing.validation_duration > 0 else "")
+        logger.info(f"Results: {self.stats.total_valid_proxies:,}/{self.stats.total_raw_proxies:,} proxies "
+                   f"({self.stats.filter_efficiency:.1f}% efficiency)")
+        logger.info(f"Files: {len(self.stats.files_created)} created in Output/")
+        logger.info(f"Reports: {ProxyScraperConfig.REPORT_FILENAME.name}, {ProxyScraperConfig.REPORT_SUMMARY_FILENAME.name}")
+        logger.info("="*80)
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Enhanced Multi-Source Proxy Generator with Detailed Reporting')
+    parser = argparse.ArgumentParser(description='Enhanced Multi-Source Proxy Generator with Performance Monitoring')
     parser.add_argument('-type', '--proxy-type',
                         choices=['http', 'socks4', 'socks5', 'all'],
                         default='all',
@@ -674,42 +865,69 @@ async def main():
     total_sources = sum(len(ProxyScraperConfig.ALL_PROXY_SOURCES[pt]) for pt in proxy_types)
 
     logger.info("="*80)
-    logger.info("ENHANCED MULTI-SOURCE PROXY SCRAPER")
+    logger.info("ENHANCED MULTI-SOURCE PROXY SCRAPER WITH PERFORMANCE MONITORING")
     logger.info("="*80)
     logger.info(f"Target: {', '.join(proxy_types)} proxies")
     logger.info(f"Total GitHub sources: {total_sources}")
     logger.info(f"Output folder: {ProxyScraperConfig.OUTPUT_DIR}")
     logger.info(f"Expected files: 10 total (8 proxy files + 2 reports)")
+    logger.info(f"Batch size: {ProxyScraperConfig.BATCH_SIZE} | Max concurrent: {ProxyScraperConfig.MAX_CONCURRENT_TASKS}")
+    logger.info("="*80)
 
     scraper = ProxyScraper(proxy_types)
 
-    # Fetch proxies from all sources
-    all_proxies = []
-    seen_global_proxies = set()
+    # STAGE 1: Fetch proxies from all sources with timing
+    logger.info("\nSTAGE 1: FETCHING PROXIES FROM SOURCES")
+    scraper.stats.timing.fetching_start_time = time.time()
 
+    all_proxies = []
     for source in scraper.proxy_sources:
         proxies = scraper.fetch_proxies_from_url(source)
-        # Remove duplicates across sources
-        unique_proxies = []
-        for proxy in proxies:
-            proxy_key = f"{proxy.proxy.address}:{proxy.proxy.port}"
-            if proxy_key not in seen_global_proxies:
-                seen_global_proxies.add(proxy_key)
-                unique_proxies.append(proxy)
-        all_proxies.extend(unique_proxies)
+        all_proxies.extend(proxies)
 
-    logger.info(f"\nAfter cross-source deduplication: {len(all_proxies)} unique proxies")
+    scraper.stats.timing.fetching_end_time = time.time()
+    fetching_duration = scraper.stats.timing.fetching_duration
 
-    # Validate all proxies
-    valid_proxies = await scraper.validate_proxies(all_proxies)
+    logger.info(f"\nSTAGE 1 COMPLETE: {len(all_proxies):,} proxies fetched in {scraper.format_duration(fetching_duration)}")
+    logger.info(f"Fetching rate: {len(all_proxies) / fetching_duration:.1f} proxies/second")
 
-    # Save all proxy files
+    # STAGE 2: Cross-source deduplication with timing
+    logger.info("\nSTAGE 2: CROSS-SOURCE DEDUPLICATION")
+    scraper.stats.timing.deduplication_start_time = time.time()
+
+    seen_global_proxies = set()
+    unique_proxies = []
+
+    for proxy in all_proxies:
+        proxy_key = f"{proxy.proxy.address}:{proxy.proxy.port}"
+        if proxy_key not in seen_global_proxies:
+            seen_global_proxies.add(proxy_key)
+            unique_proxies.append(proxy)
+
+    scraper.stats.timing.deduplication_end_time = time.time()
+    deduplication_duration = scraper.stats.timing.deduplication_duration
+    duplicates_removed = len(all_proxies) - len(unique_proxies)
+
+    logger.info(f"\nSTAGE 2 COMPLETE: {duplicates_removed:,} duplicates removed in {scraper.format_duration(deduplication_duration)}")
+    logger.info(f"Remaining unique proxies: {len(unique_proxies):,}")
+    logger.info(f"Deduplication rate: {len(all_proxies) / deduplication_duration:.1f} proxies/second" if deduplication_duration > 0 else "")
+
+    # STAGE 3: Validate all proxies with enhanced progress tracking
+    logger.info("\nSTAGE 3: PROXY VALIDATION WITH LIVE PROGRESS")
+    valid_proxies = await scraper.validate_proxies(unique_proxies)
+
+    # STAGE 4: Save all proxy files with timing
+    logger.info("\nSTAGE 4: SAVING PROXY FILES")
     scraper.save_all_proxy_files(valid_proxies)
 
-    # Generate comprehensive reports
+    # STAGE 5: Generate comprehensive reports
+    logger.info("\nSTAGE 5: GENERATING PERFORMANCE REPORTS")
     scraper.generate_comprehensive_report()
 
-    logger.info(f"\nEnhanced multi-source scraping completed! Check the 'Output' folder for all files.")
+    # Final summary
+    total_duration = scraper.stats.timing.total_duration
+    logger.info(f"\nENHANCED MULTI-SOURCE SCRAPING COMPLETED!")
+    logger.info(f"Check the 'Output' folder for all {len(scraper.stats.files_created)} files including detailed performance reports.")
 
 if __name__ == "__main__":
     asyncio.run(main())
