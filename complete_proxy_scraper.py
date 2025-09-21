@@ -225,13 +225,13 @@ class ProxyScraperConfig:
     # TEST MODE: Original minimal sources for quick testing
     TEST_PROXY_SOURCES = {
         "socks4": [
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks4.txt",
+            "https://raw.githubusercontent.com/sunny9577/proxy-scraper/refs/heads/master/generated/socks4_proxies.txt",
         ],
         "socks5": [
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
+            "https://github.com/sunny9577/proxy-scraper/blob/master/generated/socks5_proxies.txt",
         ],
         "http": [
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+            "https://raw.githubusercontent.com/sunny9577/proxy-scraper/refs/heads/master/generated/http_proxies.txt",
         ]
     }
 
