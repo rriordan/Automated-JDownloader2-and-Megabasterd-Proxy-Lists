@@ -1,0 +1,59 @@
+================================================================================
+PROXY SCRAPING SUMMARY REPORT
+================================================================================
+📅 Timestamp: 2025-09-21 02:00:34 UTC
+⏱️  Total Duration: 282.5 seconds
+🎯 Proxy Types: socks5, socks4, http
+
+📡 SOURCE STATISTICS
+----------------------------------------
+Sources Attempted: 3
+Sources Successful: 3
+Sources Failed: 0
+
+📊 RAW PROXY STATISTICS
+----------------------------------------
+HTTP proxies fetched: 39,402
+SOCKS4 proxies fetched: 2,995
+SOCKS5 proxies fetched: 2,241
+Total Raw Proxies: 44,638
+
+🧪 VALIDATION STATISTICS
+----------------------------------------
+Proxies Tested: 6,719
+Proxies Passed: 500
+Proxies Failed: 6,219
+Timeouts: 4,569
+Success Rate: 7.4%
+Filter Efficiency: 1.1%
+
+🚀 PERFORMANCE STATISTICS
+----------------------------------------
+Fastest Response: 0.035s
+Slowest Response: 2.989s
+Average Response: 1.502s
+
+📁 OUTPUT STATISTICS
+----------------------------------------
+Final HTTP proxies: 151
+Final SOCKS4 proxies: 45
+Final SOCKS5 proxies: 304
+Total Valid Proxies: 500
+Files Created: 8
+
+📂 FILES CREATED
+----------------------------------------
+jdownloader_proxies_all.jdproxies: 258,918 bytes
+jdownloader_proxies_http.jdproxies: 78,119 bytes
+jdownloader_proxies_socks4.jdproxies: 23,370 bytes
+jdownloader_proxies_socks5.jdproxies: 157,487 bytes
+megabasterd_proxies_all.txt: 9,382 bytes
+megabasterd_proxies_http.txt: 2,943 bytes
+megabasterd_proxies_socks4.txt: 856 bytes
+megabasterd_proxies_socks5.txt: 5,581 bytes
+
+================================================================================
+Report files saved:
+• Output/scraping_report.json (Detailed JSON)
+• Output/scraping_summary.txt (Human-readable)
+================================================================================

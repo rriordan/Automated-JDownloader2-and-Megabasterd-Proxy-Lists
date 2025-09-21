@@ -1,7 +1,7 @@
 {
   "scraping_session": {
-    "timestamp": "2025-09-20T16:48:24.128652",
-    "duration_seconds": 280.92,
+    "timestamp": "2025-09-21T02:00:34.443433",
+    "duration_seconds": 282.47,
     "proxy_types_requested": [
       "socks5",
       "socks4",
@@ -20,41 +20,41 @@
     "sources_successful": 3,
     "sources_failed": 0,
     "raw_proxies_by_type": {
-      "socks5": 2260,
-      "socks4": 3075,
-      "http": 39613
+      "socks5": 2241,
+      "socks4": 2995,
+      "http": 39402
     },
-    "total_raw_proxies": 44948
+    "total_raw_proxies": 44638
   },
   "validation_statistics": {
-    "proxies_tested": 11297,
-    "proxies_passed": 449,
-    "proxies_failed": 10848,
-    "timeouts": 9563,
-    "success_rate_percent": 3.97,
-    "filter_efficiency_percent": 1.0
+    "proxies_tested": 6719,
+    "proxies_passed": 500,
+    "proxies_failed": 6219,
+    "timeouts": 4569,
+    "success_rate_percent": 7.44,
+    "filter_efficiency_percent": 1.12
   },
   "performance_statistics": {
-    "fastest_response_time": 0.13,
-    "slowest_response_time": 2.994,
-    "average_response_time": 1.663
+    "fastest_response_time": 0.035,
+    "slowest_response_time": 2.989,
+    "average_response_time": 1.502
   },
   "output_statistics": {
     "final_valid_proxies_by_type": {
-      "SOCKS5": 301,
-      "SOCKS4": 47,
-      "HTTP": 101
+      "SOCKS5": 304,
+      "SOCKS4": 45,
+      "HTTP": 151
     },
-    "total_valid_proxies": 449,
+    "total_valid_proxies": 500,
     "files_created": [
-      "Output\\jdownloader_proxies_all.jdproxies",
-      "Output\\jdownloader_proxies_http.jdproxies",
-      "Output\\jdownloader_proxies_socks4.jdproxies",
-      "Output\\jdownloader_proxies_socks5.jdproxies",
-      "Output\\megabasterd_proxies_all.txt",
-      "Output\\megabasterd_proxies_http.txt",
-      "Output\\megabasterd_proxies_socks4.txt",
-      "Output\\megabasterd_proxies_socks5.txt"
+      "Output/jdownloader_proxies_all.jdproxies",
+      "Output/jdownloader_proxies_http.jdproxies",
+      "Output/jdownloader_proxies_socks4.jdproxies",
+      "Output/jdownloader_proxies_socks5.jdproxies",
+      "Output/megabasterd_proxies_all.txt",
+      "Output/megabasterd_proxies_http.txt",
+      "Output/megabasterd_proxies_socks4.txt",
+      "Output/megabasterd_proxies_socks5.txt"
     ],
     "total_files_created": 8
   }
