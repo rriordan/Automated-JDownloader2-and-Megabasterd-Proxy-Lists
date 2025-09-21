@@ -228,7 +228,7 @@ class ProxyScraperConfig:
             "https://raw.githubusercontent.com/sunny9577/proxy-scraper/refs/heads/master/generated/socks4_proxies.txt",
         ],
         "socks5": [
-            "https://github.com/sunny9577/proxy-scraper/blob/master/generated/socks5_proxies.txt",
+            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
         ],
         "http": [
             "https://raw.githubusercontent.com/sunny9577/proxy-scraper/refs/heads/master/generated/http_proxies.txt",
