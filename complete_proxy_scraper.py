@@ -464,7 +464,7 @@ class ProxyScraper:
         return self.format_duration(eta_seconds)
 
     async def create_optimized_session(self) -> aiohttp.ClientSession:
-        """Optimized TCPConnector - 15-25% improvement"""
+        """Optimized TCPConnector - 15-25% improvement - FIXED aiodns issue"""
         connector = aiohttp.TCPConnector(
             limit=2000,              # Total connection pool size
             limit_per_host=30,       # Per-host limit (prevents overwhelming single sources)
@@ -472,12 +472,8 @@ class ProxyScraper:
             use_dns_cache=True,      # Enable DNS caching
             keepalive_timeout=60,    # Keep connections alive longer
             enable_cleanup_closed=True,
-            ssl=False,
-            resolver=aiohttp.AsyncResolver(
-                nameservers=['8.8.8.8', '1.1.1.1'],  # Fast public DNS
-                timeout=2,
-                tries=2
-            )
+            ssl=False
+            # Removed resolver to avoid aiodns dependency
         )
 
         timeout = aiohttp.ClientTimeout(
@@ -613,8 +609,8 @@ class ProxyScraper:
 
         return sorted(valid_proxies, key=lambda x: x.response_time)
 
-    async def fetch_proxies_from_url_parallel(self, source: Dict) -> List[ProxyRecord]:
-        """Individual source fetching with optimization"""
+    def fetch_proxies_from_url_sync(self, source: Dict) -> List[ProxyRecord]:
+        """Synchronous source fetching with optimization"""
         source_type = source['type']
         source_url = source['url']
         self.stats.sources_attempted += 1
@@ -664,16 +660,13 @@ class ProxyScraper:
             return []
 
     async def fetch_all_sources_parallel(self) -> List[ProxyRecord]:
-        """Parallel source fetching - 60-80% faster fetching"""
+        """Parallel source fetching - 60-80% faster fetching - FIXED async issue"""
         sources = self.proxy_sources
-        semaphore = asyncio.Semaphore(10)  # Limit concurrent source fetches
-
-        async def fetch_with_semaphore(source):
-            async with semaphore:
-                return await asyncio.to_thread(self.fetch_proxies_from_url_parallel, source)
 
         logger.info(f"Fetching from {len(sources)} sources in parallel...")
-        tasks = [fetch_with_semaphore(source) for source in sources]
+
+        # Use asyncio.to_thread for proper async handling of sync functions
+        tasks = [asyncio.to_thread(self.fetch_proxies_from_url_sync, source) for source in sources]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         all_proxies = []
