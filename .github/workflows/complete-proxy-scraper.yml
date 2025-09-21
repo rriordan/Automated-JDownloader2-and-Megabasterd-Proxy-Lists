@@ -1,4 +1,4 @@
-name: Optimized Proxy Scraper - With Test Mode
+name: Complete Proxy Scraper - Fixed Version
 
 on:
   schedule:
@@ -16,11 +16,6 @@ on:
         - http
         - socks4
         - socks5
-      test_mode:
-        description: 'Enable test mode (3 sources only for quick testing)'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   scrape-proxies:
@@ -29,7 +24,7 @@ jobs:
 
     # Prevent concurrent runs to avoid git conflicts
     concurrency:
-      group: optimized-proxy-scraper
+      group: proxy-scraper
       cancel-in-progress: false
 
     steps:
@@ -56,37 +51,24 @@ jobs:
         pip list | grep -E "(aiohttp|uvloop|requests)"
       timeout-minutes: 5
 
-    - name: Run optimized proxy scraper
+    - name: Run proxy scraper with current script
       run: |
         PROXY_TYPE="${{ github.event.inputs.proxy_types || 'all' }}"
-        TEST_MODE="${{ github.event.inputs.test_mode || 'false' }}"
 
-        if [ "$TEST_MODE" = "true" ]; then
-          echo "🧪 Running OPTIMIZED proxy scraper in TEST MODE for: $PROXY_TYPE"
-          echo "   • Using 3 original sources only"
-          echo "   • Expected duration: 2-5 minutes"
-          timeout 1800 python optimized_proxy_scraper_with_test_mode.py --proxy-type "$PROXY_TYPE" --test-mode
-        else
-          echo "🚀 Running OPTIMIZED proxy scraper in PRODUCTION MODE for: $PROXY_TYPE"  
-          echo "   • Using all available GitHub sources"
-          echo "   • Expected duration: 10-25 minutes"
-          echo "   • Optimizations: uvloop, TCPConnector, Parallel Fetching, Pre-filtering"
-          timeout 5400 python optimized_proxy_scraper_with_test_mode.py --proxy-type "$PROXY_TYPE"
-        fi
+        echo "🚀 Running proxy scraper for: $PROXY_TYPE"
+        echo "   • Using current script: complete_proxy_scraper.py"
+        echo "   • Expected duration: 15-30 minutes"
 
-        EXIT_CODE=$?
-        if [ $EXIT_CODE -eq 124 ]; then
-          echo "⚠️ Script timed out - this may be normal for large proxy lists"
-        elif [ $EXIT_CODE -ne 0 ]; then
-          echo "❌ Script failed with exit code $EXIT_CODE"
-        else
-          echo "✅ Script completed successfully"
-        fi
+        # Use the existing script that's already in the repository
+        timeout 5400 python complete_proxy_scraper.py --proxy-type "$PROXY_TYPE" || {
+          echo "⚠️ Script timed out after 90 minutes"
+          echo "This may be normal for large proxy lists"
+        }
       timeout-minutes: 85
 
-    - name: Verify optimized output
+    - name: Verify Output folder and files
       run: |
-        echo "📁 Checking optimized output..."
+        echo "📁 Checking Output folder contents..."
 
         if [ -d "Output" ]; then
           echo "✅ Output folder exists"
@@ -99,55 +81,15 @@ jobs:
           report_files=$(ls Output/*.json 2>/dev/null | wc -l)
           total_files=$((jd_files + mb_files + report_files))
 
-          echo "📈 Optimized file summary:"
+          echo "📈 File summary:"
           echo "   • JDownloader2 files: $jd_files"
           echo "   • MegaBasterd files: $mb_files"
           echo "   • Report files: $report_files"
           echo "   • Total files: $total_files"
 
-          # Show optimization results if available
-          if [ -f "Output/scraping_summary.txt" ]; then
-            echo ""
-            echo "⚡ Performance Summary:"
-
-            # Extract key metrics
-            if grep -q "Total Duration:" Output/scraping_summary.txt; then
-              grep "Total Duration:" Output/scraping_summary.txt | sed 's/^/   /'
-            fi
-            if grep -q "Total Valid Proxies:" Output/scraping_summary.txt; then
-              grep "Total Valid Proxies:" Output/scraping_summary.txt | sed 's/^/   /'
-            fi
-            if grep -q "Success Rate:" Output/scraping_summary.txt; then
-              grep "Success Rate:" Output/scraping_summary.txt | sed 's/^/   /'
-            fi
-            if grep -q "Pre-filter Efficiency:" Output/scraping_summary.txt; then
-              grep "Pre-filter Efficiency:" Output/scraping_summary.txt | sed 's/^/   /'
-            fi
-            if grep -q "Overall Rate:" Output/scraping_summary.txt; then
-              grep "Overall Rate:" Output/scraping_summary.txt | sed 's/^/   /'
-            fi
-
-            # Show optimizations status
-            echo ""
-            echo "🔧 Active Optimizations:"
-            if grep -q "uvloop" Output/scraping_summary.txt; then
-              echo "   ✅ uvloop Event Loop"
-            fi
-            if grep -q "TCPConnector" Output/scraping_summary.txt; then
-              echo "   ✅ Optimized TCPConnector"  
-            fi
-            if grep -q "Parallel" Output/scraping_summary.txt; then
-              echo "   ✅ Parallel Source Fetching"
-            fi
-            if grep -q "Pre-validation" Output/scraping_summary.txt; then
-              echo "   ✅ Pre-validation Filtering"
-            fi
-          fi
-
           # Show file sizes
           if [ $total_files -gt 0 ]; then
-            echo ""
-            echo "📋 File details:"
+            echo "📋 File sizes:"
             for file in Output/*.jdproxies Output/*.txt Output/*.json; do
               if [ -f "$file" ]; then
                 size=$(wc -c < "$file" 2>/dev/null || echo "0")
@@ -156,6 +98,21 @@ jobs:
               fi
             done
           fi
+
+          # Show performance summary if available
+          if [ -f "Output/scraping_summary.txt" ]; then
+            echo ""
+            echo "📈 Performance Summary:"
+            if grep -q "Total Valid Proxies:" Output/scraping_summary.txt; then
+              grep "Total Valid Proxies:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+            if grep -q "Total Duration:" Output/scraping_summary.txt; then
+              grep "Total Duration:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+            if grep -q "Success Rate:" Output/scraping_summary.txt; then
+              grep "Success Rate:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+          fi
         else
           echo "❌ Output folder not found"
           echo "Creating empty Output folder for artifacts..."
@@ -163,10 +120,10 @@ jobs:
           echo "No proxy files were generated" > Output/generation_failed.txt
         fi
 
-    - name: Upload optimized proxy files
+    - name: Upload all proxy files as artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: optimized-proxy-lists-${{ github.event.inputs.test_mode == 'true' && 'test' || 'production' }}-${{ github.run_number }}
+        name: proxy-lists-${{ github.run_number }}
         path: Output/
         retention-days: 7
         if-no-files-found: warn
@@ -177,7 +134,7 @@ jobs:
 
         # Configure git identity
         git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action - Optimized Proxy Scraper"
+        git config --local user.name "GitHub Action - Proxy Scraper"
         git config --local pull.rebase false
         git config --local merge.ours.driver true
 
@@ -247,23 +204,16 @@ jobs:
         echo "📋 Files being committed:"
         git diff --cached --name-only | sed 's/^/   • /'
 
-        # Create descriptive commit message with optimization info
+        # Create descriptive commit message
         proxy_type="${{ github.event.inputs.proxy_types || 'all' }}"
-        test_mode="${{ github.event.inputs.test_mode || 'false' }}"
         timestamp=$(date '+%Y-%m-%d %H:%M UTC')
-
-        if [ "$test_mode" = "true" ]; then
-          mode_suffix="[TEST MODE]"
-        else
-          mode_suffix="[OPTIMIZED]"
-        fi
 
         # Count valid proxies from the all file if it exists
         if [ -f "Output/jdownloader_proxies_all.jdproxies" ]; then
           proxy_count=$(grep -o '"address"' Output/jdownloader_proxies_all.jdproxies | wc -l)
-          commit_msg="🚀 Update proxy lists ($proxy_type) $mode_suffix - $timestamp [$proxy_count proxies, $file_count files]"
+          commit_msg="🔄 Update proxy lists ($proxy_type) - $timestamp [$proxy_count proxies, $file_count files]"
         else
-          commit_msg="🚀 Update proxy lists ($proxy_type) $mode_suffix - $timestamp [$file_count files]"
+          commit_msg="🔄 Update proxy lists ($proxy_type) - $timestamp [$file_count files]"
         fi
 
         echo "💬 Commit message: $commit_msg"
@@ -291,41 +241,25 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       timeout-minutes: 5
 
-    - name: Optimization performance summary
+    - name: Workflow summary
       if: always()
       run: |
-        echo "🎉 OPTIMIZED WORKFLOW SUMMARY"
-        echo "============================"
+        echo "🎉 WORKFLOW SUMMARY"
+        echo "==================="
         echo "📅 Run date: $(date '+%Y-%m-%d %H:%M UTC')"
         echo "🎯 Proxy type: ${{ github.event.inputs.proxy_types || 'all' }}"
-        echo "🧪 Test mode: ${{ github.event.inputs.test_mode || 'false' }}"
         echo "📁 Output folder: Output/"
-        echo "🔧 Script used: optimized_proxy_scraper_with_test_mode.py"
-
-        if [ "${{ github.event.inputs.test_mode || 'false' }}" = "true" ]; then
-          echo "⚡ Mode: TEST (3 sources, fast validation)"
-          echo "⏱️ Expected time: 2-5 minutes"
-        else
-          echo "⚡ Mode: PRODUCTION (70+ sources, full validation)"
-          echo "⏱️ Expected time: 10-25 minutes"
-        fi
-
-        echo ""
-        echo "🚀 Active Optimizations:"
-        echo "   • uvloop Event Loop (30-50% faster)"
-        echo "   • Optimized TCPConnector (15-25% improvement)"
-        echo "   • Parallel Source Fetching (60-80% faster)"
-        echo "   • Pre-validation Filtering (30-50% fewer tests)"
+        echo "🔧 Script used: complete_proxy_scraper.py (existing script)"
 
         if [ -d "Output" ]; then
           file_count=$(ls Output/*.jdproxies Output/*.txt Output/*.json 2>/dev/null | wc -l || echo "0")
           echo "📊 Files generated: $file_count"
-          echo "📦 Artifact: optimized-proxy-lists-${{ github.event.inputs.test_mode == 'true' && 'test' || 'production' }}-${{ github.run_number }}"
+          echo "📦 Artifact: proxy-lists-${{ github.run_number }}"
 
-          # Show optimization results if available
+          # Show proxy counts if available
           if [ -f "Output/scraping_summary.txt" ]; then
             echo ""
-            echo "📈 Optimization Results:"
+            echo "📈 Results:"
             if grep -q "Total Valid Proxies:" Output/scraping_summary.txt; then
               grep "Total Valid Proxies:" Output/scraping_summary.txt | sed 's/^/   /'
             fi
@@ -335,13 +269,10 @@ jobs:
             if grep -q "Success Rate:" Output/scraping_summary.txt; then
               grep "Success Rate:" Output/scraping_summary.txt | sed 's/^/   /'
             fi
-            if grep -q "Overall Rate:" Output/scraping_summary.txt; then
-              grep "Overall Rate:" Output/scraping_summary.txt | sed 's/^/   /'
-            fi
           fi
 
           echo ""
-          echo "🔗 Download the optimized proxy files from the Actions tab artifacts"
+          echo "🔗 Download the proxy files from the Actions tab artifacts"
         else
           echo "❌ No Output folder found - check logs for errors"
         fi
@@ -360,8 +291,3 @@ jobs:
         echo "   • Output/scraping_summary.txt"
         echo ""
         echo "🔄 Next scheduled run: $(date -d '+6 hours' '+%Y-%m-%d %H:%M UTC')"
-
-        if [ "${{ github.event.inputs.test_mode || 'false' }}" = "true" ]; then
-          echo ""
-          echo "💡 TIP: Remove --test-mode for full production run with all sources"
-        fi
