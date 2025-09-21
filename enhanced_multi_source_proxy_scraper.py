@@ -243,7 +243,7 @@ class ProxyScraper:
 
         # Create output directory if it doesn't exist
         ProxyScraperConfig.OUTPUT_DIR.mkdir(exist_ok=True)
-        logger.info(f"📁 Created output directory: {ProxyScraperConfig.OUTPUT_DIR}")
+        logger.info(f"Created output directory: {ProxyScraperConfig.OUTPUT_DIR}")
 
     @property
     def proxy_sources(self) -> List[Dict]:
@@ -318,7 +318,7 @@ class ProxyScraper:
                 return None
 
     async def validate_proxies(self, proxies: List[ProxyRecord]) -> List[ProxyRecord]:
-        logger.info(f"🚀 Starting validation of {len(proxies)} unique proxies...")
+        logger.info(f"Starting validation of {len(proxies)} unique proxies...")
 
         connector = aiohttp.TCPConnector(
             limit=0,  # No limit
@@ -357,7 +357,7 @@ class ProxyScraper:
         self.stats.sources_attempted += 1
 
         try:
-            logger.info(f"📥 Fetching {source_type} proxies from {source_url}")
+            logger.info(f"Fetching {source_type} proxies from {source_url}")
             response = self.session.get(source_url, timeout=ProxyScraperConfig.TIMEOUT)
             response.raise_for_status()
 
@@ -391,11 +391,11 @@ class ProxyScraper:
             self.stats.raw_proxies_fetched[source_type] += len(proxy_list)
             self.stats.sources_successful += 1
 
-            logger.info(f"✅ Fetched {len(proxy_list)} unique {source_type} proxies ({duplicates_in_source} duplicates removed)")
+            logger.info(f"Fetched {len(proxy_list)} unique {source_type} proxies ({duplicates_in_source} duplicates removed)")
             return proxy_list
 
         except Exception as e:
-            logger.error(f"❌ Error fetching {source_type} proxies from {source_url}: {e}")
+            logger.error(f"Error fetching {source_type} proxies from {source_url}: {e}")
             self.stats.sources_failed += 1
             if source_type not in self.stats.raw_proxies_fetched:
                 self.stats.raw_proxies_fetched[source_type] = 0
@@ -409,7 +409,7 @@ class ProxyScraper:
             filtered_proxies = [p for p in proxies if p.proxy.type != "NONE"]
 
         if not filtered_proxies:
-            logger.warning(f"⚠️ No {proxy_type_filter or 'valid'} proxies to save to {filename}")
+            logger.warning(f"No {proxy_type_filter or 'valid'} proxies to save to {filename}")
             return
 
         output = {
@@ -427,11 +427,11 @@ class ProxyScraper:
             ]
         }
 
-        with open(filename, 'w') as f:
-            json.dump(output, f, indent=2)
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(output, f, indent=2, ensure_ascii=False)
 
         self.stats.files_created.append(str(filename))
-        logger.info(f"✅ Saved {len(filtered_proxies)} {proxy_type_filter or 'total'} proxies to {filename}")
+        logger.info(f"Saved {len(filtered_proxies)} {proxy_type_filter or 'total'} proxies to {filename}")
 
     def _save_megabasterd_file(self, proxies: List[ProxyRecord], filename: Path, proxy_type_filter: str = None):
         """Save proxies in MegaBasterd format with optional type filtering"""
@@ -441,7 +441,7 @@ class ProxyScraper:
             filtered_proxies = [p for p in proxies if p.proxy.type != "NONE"]
 
         if not filtered_proxies:
-            logger.warning(f"⚠️ No {proxy_type_filter or 'valid'} proxies to save to {filename}")
+            logger.warning(f"No {proxy_type_filter or 'valid'} proxies to save to {filename}")
             return
 
         proxy_lines = []
@@ -449,18 +449,18 @@ class ProxyScraper:
             proxy_line = f"{proxy.proxy.address}:{proxy.proxy.port}"
             proxy_lines.append(proxy_line)
 
-        with open(filename, 'w') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             f.write('\n'.join(proxy_lines))
 
         self.stats.files_created.append(str(filename))
-        logger.info(f"✅ Saved {len(filtered_proxies)} {proxy_type_filter or 'total'} proxies to {filename}")
+        logger.info(f"Saved {len(filtered_proxies)} {proxy_type_filter or 'total'} proxies to {filename}")
 
     def save_all_proxy_files(self, proxies: List[ProxyRecord]):
         """Save proxies in both JDownloader2 and MegaBasterd formats (8 files total)"""
         valid_proxies = [p for p in proxies if p.proxy.type != "NONE"]
 
         if not valid_proxies:
-            logger.error("❌ No valid proxies to save!")
+            logger.error("No valid proxies to save!")
             return
 
         logger.info("\n" + "="*80)
@@ -476,27 +476,27 @@ class ProxyScraper:
         self.stats.final_valid_proxies = dict(type_stats)
         self.stats.total_valid_proxies = len(valid_proxies)
 
-        logger.info("\n📊 Final Proxy Distribution:")
+        logger.info("\nFinal Proxy Distribution:")
         for proxy_type, count in sorted(type_stats.items()):
-            logger.info(f"   • {proxy_type}: {count} proxies")
-        logger.info(f"   • TOTAL: {len(valid_proxies)} valid proxies")
+            logger.info(f"   {proxy_type}: {count} proxies")
+        logger.info(f"   TOTAL: {len(valid_proxies)} valid proxies")
 
         # Save JDownloader2 files (4 files)
-        logger.info("\n📁 Saving JDownloader2 Files:")
+        logger.info("\nSaving JDownloader2 Files:")
         self._save_jdownloader_file(valid_proxies, ProxyScraperConfig.JD_COMBINED_FILENAME)
         self._save_jdownloader_file(valid_proxies, ProxyScraperConfig.JD_HTTP_FILENAME, "HTTP")
         self._save_jdownloader_file(valid_proxies, ProxyScraperConfig.JD_SOCKS4_FILENAME, "SOCKS4")
         self._save_jdownloader_file(valid_proxies, ProxyScraperConfig.JD_SOCKS5_FILENAME, "SOCKS5")
 
         # Save MegaBasterd files (4 files)
-        logger.info("\n📁 Saving MegaBasterd Files:")
+        logger.info("\nSaving MegaBasterd Files:")
         self._save_megabasterd_file(valid_proxies, ProxyScraperConfig.MB_COMBINED_FILENAME)
         self._save_megabasterd_file(valid_proxies, ProxyScraperConfig.MB_HTTP_FILENAME, "HTTP")
         self._save_megabasterd_file(valid_proxies, ProxyScraperConfig.MB_SOCKS4_FILENAME, "SOCKS4")
         self._save_megabasterd_file(valid_proxies, ProxyScraperConfig.MB_SOCKS5_FILENAME, "SOCKS5")
 
     def generate_comprehensive_report(self):
-        """Generate detailed JSON and text reports"""
+        """Generate detailed JSON and text reports with proper UTF-8 encoding"""
         self.stats.end_time = time.time()
 
         # Calculate final statistics
@@ -551,20 +551,20 @@ class ProxyScraper:
             }
         }
 
-        # Save JSON report
-        with open(ProxyScraperConfig.REPORT_FILENAME, 'w') as f:
-            json.dump(report_data, f, indent=2)
+        # Save JSON report with UTF-8 encoding
+        with open(ProxyScraperConfig.REPORT_FILENAME, 'w', encoding='utf-8') as f:
+            json.dump(report_data, f, indent=2, ensure_ascii=False)
 
-        # Create human-readable summary
+        # Create human-readable summary WITHOUT Unicode emojis for Windows compatibility
         summary_lines = [
             "="*80,
             "ENHANCED PROXY SCRAPING SUMMARY REPORT",
             "="*80,
-            f"📅 Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}",
-            f"⏱️  Total Duration: {self.stats.total_duration:.1f} seconds",
-            f"🎯 Proxy Types: {', '.join(self.proxy_types)}",
+            f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            f"Total Duration: {self.stats.total_duration:.1f} seconds",
+            f"Proxy Types: {', '.join(self.proxy_types)}",
             "",
-            "📡 SOURCE STATISTICS (GitHub Sources Only)",
+            "SOURCE STATISTICS (GitHub Sources Only)",
             "-" * 50,
             f"Sources Attempted: {self.stats.sources_attempted}",
             f"Sources Successful: {self.stats.sources_successful}",
@@ -578,7 +578,7 @@ class ProxyScraper:
 
         summary_lines.extend([
             "",
-            "📊 RAW PROXY STATISTICS",
+            "RAW PROXY STATISTICS",
             "-" * 40,
         ])
 
@@ -588,7 +588,7 @@ class ProxyScraper:
         summary_lines.extend([
             f"Total Raw Proxies: {self.stats.total_raw_proxies:,}",
             "",
-            "🧪 VALIDATION STATISTICS", 
+            "VALIDATION STATISTICS", 
             "-" * 40,
             f"Proxies Tested: {self.stats.proxies_tested:,}",
             f"Proxies Passed: {self.stats.proxies_passed:,}",
@@ -597,7 +597,7 @@ class ProxyScraper:
             f"Success Rate: {self.stats.success_rate:.1f}%",
             f"Filter Efficiency: {self.stats.filter_efficiency:.1f}%",
             "",
-            "🚀 PERFORMANCE STATISTICS",
+            "PERFORMANCE STATISTICS",
             "-" * 40,
         ])
 
@@ -612,7 +612,7 @@ class ProxyScraper:
 
         summary_lines.extend([
             "",
-            "📁 OUTPUT STATISTICS",
+            "OUTPUT STATISTICS",
             "-" * 40,
         ])
 
@@ -623,7 +623,7 @@ class ProxyScraper:
             f"Total Valid Proxies: {self.stats.total_valid_proxies:,}",
             f"Files Created: {len(self.stats.files_created)}",
             "",
-            "📂 FILES CREATED",
+            "FILES CREATED",
             "-" * 40,
         ])
 
@@ -634,28 +634,28 @@ class ProxyScraper:
         summary_lines.extend([
             "",
             "="*80,
-            "🎉 ENHANCED WITH MULTIPLE GITHUB SOURCES",
+            "ENHANCED WITH MULTIPLE GITHUB SOURCES",
             f"Total GitHub sources used: {sum(total_sources_by_type.values()) if total_sources_by_type else 0}",
             "This provides much better coverage and reliability!",
             "",
             "Report files saved:",
-            f"• {ProxyScraperConfig.REPORT_FILENAME} (Detailed JSON)",
-            f"• {ProxyScraperConfig.REPORT_SUMMARY_FILENAME} (Human-readable)",
+            f"- {ProxyScraperConfig.REPORT_FILENAME} (Detailed JSON)",
+            f"- {ProxyScraperConfig.REPORT_SUMMARY_FILENAME} (Human-readable)",
             "="*80
         ])
 
         summary_text = "\n".join(summary_lines)
 
-        # Save text summary
-        with open(ProxyScraperConfig.REPORT_SUMMARY_FILENAME, 'w') as f:
+        # Save text summary with UTF-8 encoding
+        with open(ProxyScraperConfig.REPORT_SUMMARY_FILENAME, 'w', encoding='utf-8') as f:
             f.write(summary_text)
 
-        # Also log the summary to console
+        # Also log the summary to console (without emojis)
         logger.info("\n" + summary_text)
 
-        logger.info(f"\n📋 Detailed reports saved:")
-        logger.info(f"   • JSON Report: {ProxyScraperConfig.REPORT_FILENAME}")
-        logger.info(f"   • Summary Report: {ProxyScraperConfig.REPORT_SUMMARY_FILENAME}")
+        logger.info(f"\nDetailed reports saved:")
+        logger.info(f"   JSON Report: {ProxyScraperConfig.REPORT_FILENAME}")
+        logger.info(f"   Summary Report: {ProxyScraperConfig.REPORT_SUMMARY_FILENAME}")
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Enhanced Multi-Source Proxy Generator with Detailed Reporting')
@@ -676,10 +676,10 @@ async def main():
     logger.info("="*80)
     logger.info("ENHANCED MULTI-SOURCE PROXY SCRAPER")
     logger.info("="*80)
-    logger.info(f"🎯 Target: {', '.join(proxy_types)} proxies")
-    logger.info(f"📡 Total GitHub sources: {total_sources}")
-    logger.info(f"📁 Output folder: {ProxyScraperConfig.OUTPUT_DIR}")
-    logger.info(f"📊 Expected files: 10 total (8 proxy files + 2 reports)")
+    logger.info(f"Target: {', '.join(proxy_types)} proxies")
+    logger.info(f"Total GitHub sources: {total_sources}")
+    logger.info(f"Output folder: {ProxyScraperConfig.OUTPUT_DIR}")
+    logger.info(f"Expected files: 10 total (8 proxy files + 2 reports)")
 
     scraper = ProxyScraper(proxy_types)
 
@@ -698,7 +698,7 @@ async def main():
                 unique_proxies.append(proxy)
         all_proxies.extend(unique_proxies)
 
-    logger.info(f"\n📊 After cross-source deduplication: {len(all_proxies)} unique proxies")
+    logger.info(f"\nAfter cross-source deduplication: {len(all_proxies)} unique proxies")
 
     # Validate all proxies
     valid_proxies = await scraper.validate_proxies(all_proxies)
@@ -709,7 +709,7 @@ async def main():
     # Generate comprehensive reports
     scraper.generate_comprehensive_report()
 
-    logger.info(f"\n🎉 Enhanced multi-source scraping completed! Check the 'Output' folder for all files.")
+    logger.info(f"\nEnhanced multi-source scraping completed! Check the 'Output' folder for all files.")
 
 if __name__ == "__main__":
     asyncio.run(main())
