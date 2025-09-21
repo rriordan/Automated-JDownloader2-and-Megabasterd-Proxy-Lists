@@ -12,17 +12,6 @@ from pathlib import Path
 from collections import defaultdict
 import os
 from datetime import datetime, timedelta
-import re
-import socket
-import ipaddress
-
-# Try to use uvloop for 30-50% performance improvement
-try:
-    import uvloop
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    print("🚀 Using uvloop for enhanced performance")
-except ImportError:
-    print("⚠️ uvloop not available, using standard asyncio")
 
 # Configure logging
 logging.basicConfig(
@@ -144,10 +133,6 @@ class ScrapingStats:
     proxies_failed: int = 0
     timeouts: int = 0
 
-    # Pre-filtering statistics
-    pre_filter_rejected: int = 0
-    pre_filter_passed: int = 0
-
     # Performance statistics
     fastest_response_time: float = 0.0
     slowest_response_time: float = 0.0
@@ -207,41 +192,28 @@ class ProxyScraperConfig:
     MB_SOCKS4_FILENAME = OUTPUT_DIR / 'megabasterd_proxies_socks4.txt'
     MB_SOCKS5_FILENAME = OUTPUT_DIR / 'megabasterd_proxies_socks5.txt'
 
-    # BALANCED OPTIMIZED SETTINGS - 25-35% faster
-    TEST_URL = "http://httpbin.org/ip"  # Fast test endpoint
-    TIMEOUT = 4  # Reduced from 6s → 33% faster timeouts
-    BATCH_SIZE = 400  # Increased from 300 → 33% larger batches
-    MAX_CONCURRENT_TASKS = 500  # Increased from 800 → 25% more concurrency
-    MAX_RESPONSE_TIME = 4  # Reduced from 5s → 20% stricter filtering
+    TEST_URL = "http://httpbin.org/ip"  # Single fast endpoint
+    TIMEOUT = 5  # Increased timeout for more sources
+    BATCH_SIZE = 500  # Increased batch size
+    MAX_CONCURRENT_TASKS = 1500  # Slightly reduced to handle more sources reliably
+    MAX_RESPONSE_TIME = 5  # Increased max response time for more sources
 
     # Map proxy types to JDownloader2 format
     PROXY_TYPE_MAP = {
         "http": "HTTP",
-        "https": "HTTPS", 
+        "https": "HTTPS",
         "socks4": "SOCKS4",
         "socks5": "SOCKS5"
-    }
-
-    # TEST MODE: Original minimal sources for quick testing
-    TEST_PROXY_SOURCES = {
-        "socks4": [
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks4.txt",
-        ],
-        "socks5": [
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
-        ],
-        "http": [
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-        ]
     }
 
     # EXPANDED GitHub-only proxy sources for better coverage and reliability
     ALL_PROXY_SOURCES = {
         "socks4": [
             # Original source (kept for consistency)
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks4.txt",
+            "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt",
             # Additional GitHub sources
             "https://raw.githubusercontent.com/mzyui/proxy-list/refs/heads/main/socks4.txt",
+            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks4.txt",
             "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS4_RAW.txt",
             "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt",
             "https://raw.githubusercontent.com/mmpx12/proxy-list/master/socks4.txt",
@@ -250,6 +222,7 @@ class ProxyScraperConfig:
             "https://raw.githubusercontent.com/Noctiro/getproxy/master/file/socks4.txt",
             "https://raw.githubusercontent.com/zevtyardt/proxy-list/main/socks4.txt",
             "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/socks4.txt",
+            "https://raw.githubusercontent.com/ArrayIterator/proxy-lists/main/proxies/socks4.txt",
             "https://raw.githubusercontent.com/zenjahid/FreeProxy4u/master/socks4.txt",
             "https://raw.githubusercontent.com/Vann-Dev/proxy-list/main/proxies/socks4.txt",
             "https://raw.githubusercontent.com/tuanminpay/live-proxy/master/socks4.txt",
@@ -261,8 +234,9 @@ class ProxyScraperConfig:
         ],
         "socks5": [
             # Original source (kept for consistency)  
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
+            "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt",
             # Additional GitHub sources
+            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
             "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt",
             "https://raw.githubusercontent.com/mzyui/proxy-list/refs/heads/main/socks5.txt",
             "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt",
@@ -272,6 +246,7 @@ class ProxyScraperConfig:
             "https://raw.githubusercontent.com/Noctiro/getproxy/master/file/socks5.txt",
             "https://raw.githubusercontent.com/zevtyardt/proxy-list/main/socks5.txt",
             "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/socks5.txt",
+            "https://raw.githubusercontent.com/ArrayIterator/proxy-lists/main/proxies/socks5.txt",
             "https://raw.githubusercontent.com/zenjahid/FreeProxy4u/master/socks5.txt",
             "https://raw.githubusercontent.com/Vann-Dev/proxy-list/main/proxies/socks5.txt",
             "https://raw.githubusercontent.com/tuanminpay/live-proxy/master/socks5.txt",
@@ -283,7 +258,7 @@ class ProxyScraperConfig:
         ],
         "http": [
             # Original source (kept for consistency)
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+            "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt",
             # Additional GitHub sources
             "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt",
             "https://github.com/monosans/proxy-list/raw/main/proxies/http.txt",
@@ -298,6 +273,8 @@ class ProxyScraperConfig:
             "https://raw.githubusercontent.com/Noctiro/getproxy/master/file/https.txt",
             "https://raw.githubusercontent.com/zevtyardt/proxy-list/main/http.txt",
             "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/http.txt",
+            "https://raw.githubusercontent.com/ArrayIterator/proxy-lists/main/proxies/http.txt",
+            "https://raw.githubusercontent.com/ArrayIterator/proxy-lists/main/proxies/https.txt",
             "https://raw.githubusercontent.com/zenjahid/FreeProxy4u/master/http.txt",
             "https://raw.githubusercontent.com/Vann-Dev/proxy-list/main/proxies/http.txt",
             "https://raw.githubusercontent.com/Vann-Dev/proxy-list/main/proxies/https.txt",
@@ -322,14 +299,13 @@ class ProxyScraperConfig:
     ]
 
 class ProxyScraper:
-    def __init__(self, proxy_types: List[str], test_mode: bool = False):
+    def __init__(self, proxy_types: List[str]):
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': ProxyScraperConfig.USER_AGENTS[0]
         })
         self.valid_proxies: Set[str] = set()
         self.proxy_types = proxy_types
-        self.test_mode = test_mode
         self.semaphore = asyncio.Semaphore(ProxyScraperConfig.MAX_CONCURRENT_TASKS)
 
         # Initialize statistics tracking with enhanced timing
@@ -337,9 +313,9 @@ class ProxyScraper:
         self.failed_proxies = []
         self.timeout_proxies = []
 
-        # Progress tracking - optimized for less overhead
+        # Progress tracking for live updates
         self.last_progress_update = time.time()
-        self.progress_update_interval = 5  # Reduced logging frequency for speed
+        self.progress_update_interval = 5  # seconds
 
         # Create output directory if it doesn't exist
         ProxyScraperConfig.OUTPUT_DIR.mkdir(exist_ok=True)
@@ -347,14 +323,11 @@ class ProxyScraper:
 
     @property
     def proxy_sources(self) -> List[Dict]:
-        # Choose source set based on test mode
-        source_dict = ProxyScraperConfig.TEST_PROXY_SOURCES if self.test_mode else ProxyScraperConfig.ALL_PROXY_SOURCES
-
         sources = []
         for proxy_type in self.proxy_types:
             proxy_type_lower = proxy_type.lower()
-            if proxy_type_lower in source_dict:
-                for url in source_dict[proxy_type_lower]:
+            if proxy_type_lower in ProxyScraperConfig.ALL_PROXY_SOURCES:
+                for url in ProxyScraperConfig.ALL_PROXY_SOURCES[proxy_type_lower]:
                     sources.append({
                         "url": url,
                         "type": proxy_type_lower
@@ -372,78 +345,6 @@ class ProxyScraper:
         )
 
         return ProxyRecord(proxy=preferences, response_time=0.0)
-
-    def pre_filter_proxies(self, raw_proxy_lines: List[str]) -> List[Tuple[str, int]]:
-        """Pre-validation filtering - 30-50% fewer tests needed"""
-        valid_proxies = []
-        rejected_count = 0
-
-        # Compile regex patterns for efficiency
-        ip_pattern = re.compile(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$')
-
-        for line in raw_proxy_lines:
-            line = line.strip()
-            if not line or line.startswith('#') or line.startswith('//'):
-                rejected_count += 1
-                continue
-
-            try:
-                if ':' not in line:
-                    rejected_count += 1
-                    continue
-
-                parts = line.split(':')
-                if len(parts) != 2:
-                    rejected_count += 1
-                    continue
-
-                address, port_str = parts
-
-                # Fast IPv4 validation
-                if not ip_pattern.match(address):
-                    rejected_count += 1
-                    continue
-
-                # Port validation
-                try:
-                    port = int(port_str)
-                    if not (1 <= port <= 65535):
-                        rejected_count += 1
-                        continue
-                except ValueError:
-                    rejected_count += 1
-                    continue
-
-                # Additional IP validation
-                try:
-                    ipaddress.IPv4Address(address)
-                except ipaddress.AddressValueError:
-                    rejected_count += 1
-                    continue
-
-                # Skip obviously invalid ranges
-                octets = address.split('.')
-                first_octet = int(octets[0])
-
-                # Skip localhost, multicast, reserved ranges
-                if (first_octet in [0, 127, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239] or
-                    address.startswith('10.') or
-                    address.startswith('192.168.') or
-                    (address.startswith('172.') and 16 <= int(octets[1]) <= 31)):
-                    rejected_count += 1
-                    continue
-
-                valid_proxies.append((address, port))
-
-            except Exception:
-                rejected_count += 1
-                continue
-
-        self.stats.pre_filter_rejected = rejected_count
-        self.stats.pre_filter_passed = len(valid_proxies)
-
-        logger.info(f"PRE-FILTER: {len(valid_proxies):,} valid proxies, {rejected_count:,} rejected")
-        return valid_proxies
 
     def format_duration(self, seconds: float) -> str:
         """Format duration in human-readable format"""
@@ -464,57 +365,9 @@ class ProxyScraper:
             return "Unknown"
         return self.format_duration(eta_seconds)
 
-    async def create_balanced_optimized_session(self) -> aiohttp.ClientSession:
-        """Balanced optimized TCPConnector - 25% more performance"""
-        connector = aiohttp.TCPConnector(
-            limit=1500,              # Increased from 1200
-            limit_per_host=35,       # Increased from 25
-            ttl_dns_cache=600,       # Longer cache for better performance
-            use_dns_cache=True,      # Enable DNS caching
-            keepalive_timeout=45,    # Balanced keepalive
-            enable_cleanup_closed=True,
-            ssl=False
-        )
-
-        timeout = aiohttp.ClientTimeout(
-            total=ProxyScraperConfig.TIMEOUT + 1,
-            connect=3,  # Slightly faster connect timeout
-            sock_read=ProxyScraperConfig.TIMEOUT
-        )
-
-        return aiohttp.ClientSession(
-            connector=connector,
-            timeout=timeout,
-            headers={'User-Agent': ProxyScraperConfig.USER_AGENTS[0]}
-        )
-
-    async def _test_proxy_balanced(self, proxy_url: str, session: aiohttp.ClientSession, proxy_type: str) -> Tuple[bool, float, str]:
-        """Balanced proxy testing - maintains SOCKS5 support with better speed"""
+    async def _test_proxy(self, proxy_url: str, session: aiohttp.ClientSession) -> Tuple[bool, float, str]:
         try:
             start_time = time.time()
-
-            # For SOCKS5, use socket-based testing (reliable and reasonably fast)
-            if proxy_type.lower() == 'socks5':
-                try:
-                    proxy_parts = proxy_url.replace('socks5://', '').split(':')
-                    if len(proxy_parts) == 2:
-                        host, port = proxy_parts[0], int(proxy_parts[1])
-
-                        # Socket connection test with balanced timeout
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        sock.settimeout(ProxyScraperConfig.TIMEOUT)  # Use standard timeout
-                        result = sock.connect_ex((host, port))
-                        sock.close()
-
-                        if result == 0:
-                            response_time = time.time() - start_time
-                            return True, response_time, "success"
-                        else:
-                            return False, 0, "connection_failed"
-                except Exception:
-                    return False, 0, "socks5_test_failed"
-
-            # For HTTP/HTTPS/SOCKS4 proxies, use standard aiohttp method
             async with session.get(
                     ProxyScraperConfig.TEST_URL,
                     proxy=proxy_url,
@@ -525,9 +378,6 @@ class ProxyScraper:
                     await response.read()
                     response_time = time.time() - start_time
                     return True, response_time, "success"
-                else:
-                    return False, 0, f"http_error_{response.status}"
-
         except asyncio.TimeoutError:
             return False, 0, "timeout"
         except Exception as e:
@@ -536,18 +386,13 @@ class ProxyScraper:
     async def _validate_proxy(self, proxy: ProxyRecord, session: aiohttp.ClientSession) -> Optional[ProxyRecord]:
         async with self.semaphore:  # Control concurrent connections
             proxy_type = proxy.proxy.type.lower()
-
-            # Map JDownloader types back to standard types for URL formation
-            type_mapping = {"http": "http", "https": "http", "socks4": "socks4", "socks5": "socks5"}
-            url_proxy_type = type_mapping.get(proxy_type, proxy_type)
-
-            proxy_url = f"{url_proxy_type}://{proxy.proxy.address}:{proxy.proxy.port}"
+            proxy_url = f"{proxy_type}://{proxy.proxy.address}:{proxy.proxy.port}"
             proxy_key = f"{proxy.proxy.address}:{proxy.proxy.port}"
 
             if proxy_key in self.valid_proxies:
                 return None
 
-            success, response_time, status = await self._test_proxy_balanced(proxy_url, session, url_proxy_type)
+            success, response_time, status = await self._test_proxy(proxy_url, session)
 
             # Track statistics
             self.stats.proxies_tested += 1
@@ -575,10 +420,14 @@ class ProxyScraper:
         self.stats.timing.validation_start_time = time.time()
         self.stats.timing.validation_total_batches = (total_proxies + ProxyScraperConfig.BATCH_SIZE - 1) // ProxyScraperConfig.BATCH_SIZE
 
-        # Use balanced optimized session
-        session = await self.create_balanced_optimized_session()
+        connector = aiohttp.TCPConnector(
+            limit=0,  # No limit
+            ttl_dns_cache=300,
+            ssl=False,
+            use_dns_cache=True
+        )
 
-        try:
+        async with aiohttp.ClientSession(connector=connector) as session:
             tasks = [self._validate_proxy(proxy, session) for proxy in proxies]
             valid_proxies = []
 
@@ -602,14 +451,14 @@ class ProxyScraper:
                 processing_rate = self.stats.timing.get_processing_rate(proxies_processed)
                 eta_seconds = self.stats.timing.get_validation_eta(proxies_processed, total_proxies)
 
-                # Optimized progress logging (less frequent for better performance)
+                # Enhanced progress logging with timing info
                 current_time = time.time()
                 if current_time - self.last_progress_update >= self.progress_update_interval:
                     avg_response_time = sum(p.response_time for p in valid_proxies) / len(valid_proxies) if valid_proxies else 0
 
                     elapsed = current_time - self.stats.timing.validation_start_time
 
-                    logger.info(f"BALANCED: {progress:.1f}% | "
+                    logger.info(f"VALIDATION: {progress:.1f}% | "
                               f"Valid: {len(valid_proxies):,} | "
                               f"Rate: {processing_rate:.1f} p/s | "
                               f"Elapsed: {self.format_duration(elapsed)} | "
@@ -618,31 +467,28 @@ class ProxyScraper:
                               f"Avg RT: {avg_response_time:.2f}s")
 
                     self.last_progress_update = current_time
-        finally:
-            await session.close()
 
-        # End validation timing
-        self.stats.timing.validation_end_time = time.time()
-        validation_duration = self.stats.timing.validation_duration
+            # End validation timing
+            self.stats.timing.validation_end_time = time.time()
+            validation_duration = self.stats.timing.validation_duration
 
-        # Calculate performance statistics
-        if valid_proxies:
-            response_times = [p.response_time for p in valid_proxies]
-            self.stats.fastest_response_time = min(response_times)
-            self.stats.slowest_response_time = max(response_times)
-            self.stats.average_response_time = sum(response_times) / len(response_times)
+            # Calculate performance statistics
+            if valid_proxies:
+                response_times = [p.response_time for p in valid_proxies]
+                self.stats.fastest_response_time = min(response_times)
+                self.stats.slowest_response_time = max(response_times)
+                self.stats.average_response_time = sum(response_times) / len(response_times)
 
-        # Final validation summary
-        final_rate = total_proxies / validation_duration if validation_duration > 0 else 0
-        logger.info(f"VALIDATION COMPLETE: {len(valid_proxies):,}/{total_proxies:,} valid | "
-                   f"Duration: {self.format_duration(validation_duration)} | "
-                   f"Rate: {final_rate:.1f} p/s | "
-                   f"Success: {self.stats.success_rate:.1f}%")
+            # Final validation summary
+            final_rate = total_proxies / validation_duration if validation_duration > 0 else 0
+            logger.info(f"VALIDATION COMPLETE: {len(valid_proxies):,}/{total_proxies:,} valid | "
+                       f"Duration: {self.format_duration(validation_duration)} | "
+                       f"Rate: {final_rate:.1f} p/s | "
+                       f"Success: {self.stats.success_rate:.1f}%")
 
-        return sorted(valid_proxies, key=lambda x: x.response_time)
+            return sorted(valid_proxies, key=lambda x: x.response_time)
 
-    def fetch_proxies_from_url_sync(self, source: Dict) -> List[ProxyRecord]:
-        """Synchronous source fetching with optimization"""
+    def fetch_proxies_from_url(self, source: Dict) -> List[ProxyRecord]:
         source_type = source['type']
         source_url = source['url']
         self.stats.sources_attempted += 1
@@ -654,32 +500,39 @@ class ProxyScraper:
             response = self.session.get(source_url, timeout=ProxyScraperConfig.TIMEOUT)
             response.raise_for_status()
 
-            # Pre-filter raw proxy lines
-            raw_lines = response.text.splitlines()
-            valid_proxy_tuples = self.pre_filter_proxies(raw_lines)
-
-            # Convert to ProxyRecord objects
-            proxy_list = []
             seen_proxies = set()
+            proxy_list = []
+            raw_count = 0
 
-            for address, port in valid_proxy_tuples:
-                proxy_key = f"{address}:{port}"
-                if proxy_key not in seen_proxies:
-                    seen_proxies.add(proxy_key)
-                    proxy_list.append(self._create_proxy_record(
-                        address=address,
-                        port=port,
-                        proxy_type=source['type']
-                    ))
+            for line in response.text.splitlines():
+                if not line.strip() or line.startswith('#'):
+                    continue
+
+                raw_count += 1
+                try:
+                    address, port = line.strip().split(':')
+                    proxy_key = f"{address}:{port}"
+
+                    if proxy_key not in seen_proxies:
+                        seen_proxies.add(proxy_key)
+                        proxy_list.append(self._create_proxy_record(
+                            address=address,
+                            port=int(port),
+                            proxy_type=source['type']
+                        ))
+                except:
+                    continue
 
             # Update statistics
             fetch_duration = time.time() - fetch_start
+            duplicates_in_source = raw_count - len(proxy_list)
             if source_type not in self.stats.raw_proxies_fetched:
                 self.stats.raw_proxies_fetched[source_type] = 0
             self.stats.raw_proxies_fetched[source_type] += len(proxy_list)
             self.stats.sources_successful += 1
 
-            logger.info(f"FETCHED: {len(proxy_list):,} {source_type} proxies in {fetch_duration:.1f}s")
+            logger.info(f"FETCHED: {len(proxy_list):,} {source_type} proxies in {fetch_duration:.1f}s "
+                       f"({duplicates_in_source} dupes removed)")
             return proxy_list
 
         except Exception as e:
@@ -690,23 +543,6 @@ class ProxyScraper:
             if source_type not in self.stats.raw_proxies_fetched:
                 self.stats.raw_proxies_fetched[source_type] = 0
             return []
-
-    async def fetch_all_sources_parallel(self) -> List[ProxyRecord]:
-        """Parallel source fetching - 60-80% faster fetching"""
-        sources = self.proxy_sources
-
-        logger.info(f"Fetching from {len(sources)} sources in parallel...")
-
-        # Use asyncio.to_thread for proper async handling of sync functions
-        tasks = [asyncio.to_thread(self.fetch_proxies_from_url_sync, source) for source in sources]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        all_proxies = []
-        for result in results:
-            if isinstance(result, list):
-                all_proxies.extend(result)
-
-        return all_proxies
 
     def _save_jdownloader_file(self, proxies: List[ProxyRecord], filename: Path, proxy_type_filter: str = None):
         """Save proxies in JDownloader2 format with optional type filtering"""
@@ -809,7 +645,7 @@ class ProxyScraper:
         logger.info(f"\nFile saving completed in {self.format_duration(saving_duration)}")
 
     def generate_comprehensive_report(self):
-        """Generate detailed JSON and text reports with enhanced timing information"""
+        """Generate detailed JSON and text reports with enhanced timing information - FIXED UNICODE"""
         self.stats.timing.reporting_start_time = time.time()
         self.stats.end_time = time.time()
         self.stats.timing.total_end_time = self.stats.end_time
@@ -818,11 +654,10 @@ class ProxyScraper:
         self.stats.total_raw_proxies = sum(self.stats.raw_proxies_fetched.values())
 
         # Count total sources for each type
-        source_dict = ProxyScraperConfig.TEST_PROXY_SOURCES if self.test_mode else ProxyScraperConfig.ALL_PROXY_SOURCES
         total_sources_by_type = {}
         for proxy_type in self.proxy_types:
-            if proxy_type in source_dict:
-                total_sources_by_type[proxy_type] = len(source_dict[proxy_type])
+            if proxy_type in ProxyScraperConfig.ALL_PROXY_SOURCES:
+                total_sources_by_type[proxy_type] = len(ProxyScraperConfig.ALL_PROXY_SOURCES[proxy_type])
 
         # Create comprehensive JSON report with timing details
         report_data = {
@@ -830,8 +665,6 @@ class ProxyScraper:
                 "timestamp": datetime.now().isoformat(),
                 "duration_seconds": round(self.stats.total_duration, 2),
                 "proxy_types_requested": self.proxy_types,
-                "test_mode": self.test_mode,
-                "optimization_mode": "BALANCED",
                 "total_sources_by_type": total_sources_by_type,
                 "configuration": {
                     "timeout": ProxyScraperConfig.TIMEOUT,
@@ -847,7 +680,7 @@ class ProxyScraper:
                 "deduplication_duration": round(self.stats.timing.deduplication_duration, 2),
                 "validation_duration": round(self.stats.timing.validation_duration, 2),
                 "saving_duration": round(self.stats.timing.saving_duration, 2),
-                "reporting_duration": 0.0,
+                "reporting_duration": 0.0,  # Will be updated after report generation
             },
             "processing_rates": {
                 "total_proxies_per_second": round(self.stats.total_raw_proxies / self.stats.timing.total_duration, 2) if self.stats.timing.total_duration > 0 else 0,
@@ -860,11 +693,6 @@ class ProxyScraper:
                 "sources_failed": self.stats.sources_failed,
                 "raw_proxies_by_type": self.stats.raw_proxies_fetched,
                 "total_raw_proxies": self.stats.total_raw_proxies
-            },
-            "pre_filtering_statistics": {
-                "pre_filter_passed": self.stats.pre_filter_passed,
-                "pre_filter_rejected": self.stats.pre_filter_rejected,
-                "pre_filter_efficiency": round((self.stats.pre_filter_passed / (self.stats.pre_filter_passed + self.stats.pre_filter_rejected)) * 100, 2) if (self.stats.pre_filter_passed + self.stats.pre_filter_rejected) > 0 else 0
             },
             "validation_statistics": {
                 "proxies_tested": self.stats.proxies_tested,
@@ -887,32 +715,18 @@ class ProxyScraper:
             }
         }
 
-        # Save JSON report with UTF-8 encoding
+        # Save JSON report with UTF-8 encoding - FIXED
         with open(ProxyScraperConfig.REPORT_FILENAME, 'w', encoding='utf-8') as f:
             json.dump(report_data, f, indent=2, ensure_ascii=False)
 
-        # Create enhanced human-readable summary
-        mode_str = " (TEST MODE)" if self.test_mode else ""
+        # Create enhanced human-readable summary with detailed timing - NO UNICODE EMOJIS
         summary_lines = [
             "="*80,
-            f"BALANCED OPTIMIZED PROXY SCRAPING REPORT{mode_str}",
+            "ENHANCED PROXY SCRAPING PERFORMANCE REPORT",
             "="*80,
             f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}",
             f"Total Duration: {self.format_duration(self.stats.timing.total_duration)}",
             f"Proxy Types: {', '.join(self.proxy_types)}",
-            f"Mode: {'TEST (3 sources)' if self.test_mode else f'PRODUCTION ({sum(total_sources_by_type.values())} sources)'}",
-            f"Optimization Level: BALANCED (25-35% speed improvement)",
-            "",
-            "BALANCED OPTIMIZATIONS ACTIVE",
-            "-" * 50,
-            "✓ uvloop Event Loop (30-50% faster)",
-            "✓ Balanced TCPConnector (25% more performance)", 
-            "✓ Parallel Source Fetching (60-80% faster)",
-            "✓ Pre-validation Filtering (30-50% fewer tests)",
-            "✓ Optimized Concurrency (1000 vs 800 tasks)",
-            "✓ Larger Batch Processing (400 vs 300 proxies)",
-            "✓ Faster Timeouts (4s vs 6s)",
-            "✓ Reduced Logging Overhead",
             "",
             "TIMING BREAKDOWN",
             "-" * 50,
@@ -928,13 +742,7 @@ class ProxyScraper:
             f"Validation Rate: {self.stats.proxies_tested / self.stats.timing.validation_duration:.1f} proxies/second" if self.stats.timing.validation_duration > 0 else "Validation Rate: N/A",
             f"Source Fetching Rate: {self.stats.sources_attempted / self.stats.timing.fetching_duration:.1f} sources/second" if self.stats.timing.fetching_duration > 0 else "Source Fetching Rate: N/A",
             "",
-            "PRE-FILTERING RESULTS",
-            "-" * 50,
-            f"Proxies Pre-filtered: {self.stats.pre_filter_passed:,}",
-            f"Invalid Proxies Rejected: {self.stats.pre_filter_rejected:,}",
-            f"Pre-filter Efficiency: {((self.stats.pre_filter_passed / (self.stats.pre_filter_passed + self.stats.pre_filter_rejected)) * 100):.1f}%" if (self.stats.pre_filter_passed + self.stats.pre_filter_rejected) > 0 else "0.0%",
-            "",
-            "SOURCE STATISTICS",
+            "SOURCE STATISTICS (GitHub Sources Only)",
             "-" * 50,
             f"Sources Attempted: {self.stats.sources_attempted}",
             f"Sources Successful: {self.stats.sources_successful}",
@@ -944,7 +752,7 @@ class ProxyScraper:
         # Add source breakdown by type
         for proxy_type in self.proxy_types:
             if proxy_type in total_sources_by_type:
-                summary_lines.append(f"{proxy_type.upper()} sources used: {total_sources_by_type[proxy_type]}")
+                summary_lines.append(f"{proxy_type.upper()} sources available: {total_sources_by_type[proxy_type]}")
 
         summary_lines.extend([
             "",
@@ -1004,19 +812,19 @@ class ProxyScraper:
         summary_lines.extend([
             "",
             "="*80,
-            "BALANCED OPTIMIZED WITH ENHANCED PERFORMANCE",
-            f"{'Test mode: Fast 3-source validation' if self.test_mode else f'Production: {sum(total_sources_by_type.values())} GitHub sources'}",
-            "25-35% speed improvement with full SOCKS5 support!",
+            "ENHANCED WITH PERFORMANCE MONITORING",
+            f"Total GitHub sources used: {sum(total_sources_by_type.values()) if total_sources_by_type else 0}",
+            "Live ETA, processing rates, and detailed timing provided!",
             "",
             "Report files saved:",
-            f"- {ProxyScraperConfig.REPORT_FILENAME.name} (Detailed JSON)",
-            f"- {ProxyScraperConfig.REPORT_SUMMARY_FILENAME.name} (Human-readable)",
+            f"- {ProxyScraperConfig.REPORT_FILENAME} (Detailed JSON)",
+            f"- {ProxyScraperConfig.REPORT_SUMMARY_FILENAME} (Human-readable)",
             "="*80
         ])
 
         summary_text = "\n".join(summary_lines)
 
-        # Save text summary with UTF-8 encoding
+        # Save text summary with UTF-8 encoding - FIXED
         with open(ProxyScraperConfig.REPORT_SUMMARY_FILENAME, 'w', encoding='utf-8') as f:
             f.write(summary_text)
 
@@ -1027,29 +835,25 @@ class ProxyScraper:
         with open(ProxyScraperConfig.REPORT_FILENAME, 'w', encoding='utf-8') as f:
             json.dump(report_data, f, indent=2, ensure_ascii=False)
 
-        # Console summary
+        # Also log the summary to console (condensed version) - NO UNICODE EMOJIS
         logger.info(f"\n" + "="*80)
-        logger.info(f"BALANCED OPTIMIZED SCRAPING COMPLETED{mode_str}")
+        logger.info("SCRAPING COMPLETED - PERFORMANCE SUMMARY")
         logger.info("="*80)
         logger.info(f"Total Duration: {self.format_duration(self.stats.timing.total_duration)}")
         logger.info(f"Validation: {self.format_duration(self.stats.timing.validation_duration)} "
                    f"({self.stats.proxies_tested / self.stats.timing.validation_duration:.1f} p/s)" if self.stats.timing.validation_duration > 0 else "")
-        logger.info(f"Pre-filter: {self.stats.pre_filter_passed:,} passed, {self.stats.pre_filter_rejected:,} rejected")
         logger.info(f"Results: {self.stats.total_valid_proxies:,}/{self.stats.total_raw_proxies:,} proxies "
                    f"({self.stats.filter_efficiency:.1f}% efficiency)")
         logger.info(f"Files: {len(self.stats.files_created)} created in Output/")
-        logger.info("BALANCED OPTIMIZATION: 25-35% speed improvement achieved!")
+        logger.info(f"Reports: {ProxyScraperConfig.REPORT_FILENAME.name}, {ProxyScraperConfig.REPORT_SUMMARY_FILENAME.name}")
         logger.info("="*80)
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Balanced Optimized Multi-Source Proxy Generator with Enhanced Performance')
+    parser = argparse.ArgumentParser(description='Enhanced Multi-Source Proxy Generator with Performance Monitoring')
     parser.add_argument('-type', '--proxy-type',
                         choices=['http', 'socks4', 'socks5', 'all'],
                         default='all',
                         help='Type of proxies to fetch')
-    parser.add_argument('--test-mode', '--test',
-                        action='store_true',
-                        help='Test mode: Use only 3 original sources for quick validation')
     return parser.parse_args()
 
 async def main():
@@ -1057,33 +861,29 @@ async def main():
 
     proxy_types = list(ProxyScraperConfig.ALL_PROXY_SOURCES.keys()) if args.proxy_type == 'all' else [args.proxy_type]
 
-    # Count total sources based on mode
-    if args.test_mode:
-        total_sources = sum(len(ProxyScraperConfig.TEST_PROXY_SOURCES[pt]) for pt in proxy_types if pt in ProxyScraperConfig.TEST_PROXY_SOURCES)
-        mode_info = f"TEST MODE - {total_sources} sources"
-    else:
-        total_sources = sum(len(ProxyScraperConfig.ALL_PROXY_SOURCES[pt]) for pt in proxy_types)
-        mode_info = f"PRODUCTION MODE - {total_sources} sources"
+    # Count total sources
+    total_sources = sum(len(ProxyScraperConfig.ALL_PROXY_SOURCES[pt]) for pt in proxy_types)
 
     logger.info("="*80)
-    logger.info("BALANCED OPTIMIZED MULTI-SOURCE PROXY SCRAPER")
+    logger.info("ENHANCED MULTI-SOURCE PROXY SCRAPER WITH PERFORMANCE MONITORING")
     logger.info("="*80)
     logger.info(f"Target: {', '.join(proxy_types)} proxies")
-    logger.info(f"Mode: {mode_info}")
+    logger.info(f"Total GitHub sources: {total_sources}")
     logger.info(f"Output folder: {ProxyScraperConfig.OUTPUT_DIR}")
     logger.info(f"Expected files: 10 total (8 proxy files + 2 reports)")
     logger.info(f"Batch size: {ProxyScraperConfig.BATCH_SIZE} | Max concurrent: {ProxyScraperConfig.MAX_CONCURRENT_TASKS}")
-    logger.info("Balanced Optimizations: uvloop, Enhanced TCPConnector, Faster Timeouts, Larger Batches")
-    logger.info("Expected Speed Improvement: 25-35% faster than conservative version")
     logger.info("="*80)
 
-    scraper = ProxyScraper(proxy_types, test_mode=args.test_mode)
+    scraper = ProxyScraper(proxy_types)
 
-    # STAGE 1: Fetch proxies from all sources with parallel fetching
-    logger.info("\nSTAGE 1: PARALLEL SOURCE FETCHING")
+    # STAGE 1: Fetch proxies from all sources with timing
+    logger.info("\nSTAGE 1: FETCHING PROXIES FROM SOURCES")
     scraper.stats.timing.fetching_start_time = time.time()
 
-    all_proxies = await scraper.fetch_all_sources_parallel()
+    all_proxies = []
+    for source in scraper.proxy_sources:
+        proxies = scraper.fetch_proxies_from_url(source)
+        all_proxies.extend(proxies)
 
     scraper.stats.timing.fetching_end_time = time.time()
     fetching_duration = scraper.stats.timing.fetching_duration
@@ -1112,8 +912,8 @@ async def main():
     logger.info(f"Remaining unique proxies: {len(unique_proxies):,}")
     logger.info(f"Deduplication rate: {len(all_proxies) / deduplication_duration:.1f} proxies/second" if deduplication_duration > 0 else "")
 
-    # STAGE 3: Validate all proxies with balanced optimized settings
-    logger.info("\nSTAGE 3: BALANCED OPTIMIZED PROXY VALIDATION")
+    # STAGE 3: Validate all proxies with enhanced progress tracking
+    logger.info("\nSTAGE 3: PROXY VALIDATION WITH LIVE PROGRESS")
     valid_proxies = await scraper.validate_proxies(unique_proxies)
 
     # STAGE 4: Save all proxy files with timing
@@ -1125,8 +925,8 @@ async def main():
     scraper.generate_comprehensive_report()
 
     # Final summary
-    logger.info(f"\nBALANCED OPTIMIZED MULTI-SOURCE SCRAPING COMPLETED!")
-    logger.info(f"25-35% speed improvement achieved with full SOCKS5 support!")
+    total_duration = scraper.stats.timing.total_duration
+    logger.info(f"\nENHANCED MULTI-SOURCE SCRAPING COMPLETED!")
     logger.info(f"Check the 'Output' folder for all {len(scraper.stats.files_created)} files including detailed performance reports.")
 
 if __name__ == "__main__":
