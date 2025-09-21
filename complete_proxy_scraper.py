@@ -211,7 +211,7 @@ class ProxyScraperConfig:
     TEST_URL = "http://httpbin.org/ip"  # Fast test endpoint
     TIMEOUT = 4  # Reduced from 6s → 33% faster timeouts
     BATCH_SIZE = 400  # Increased from 300 → 33% larger batches
-    MAX_CONCURRENT_TASKS = 1000  # Increased from 800 → 25% more concurrency
+    MAX_CONCURRENT_TASKS = 500  # Increased from 800 → 25% more concurrency
     MAX_RESPONSE_TIME = 4  # Reduced from 5s → 20% stricter filtering
 
     # Map proxy types to JDownloader2 format
