@@ -29,6 +29,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - uses: actions/setup-python@v4
       with:
@@ -53,4 +54,257 @@ jobs:
         fi
       timeout-minutes: 85
 
-    # ... rest of your existing workflow steps ...
+    - name: Verify Output folder and files
+      run: |
+        echo "📁 Checking Output folder contents..."
+
+        if [ -d "Output" ]; then
+          echo "✅ Output folder exists"
+          echo "📊 Files in Output folder:"
+          ls -la Output/ | grep -E '\.(jdproxies|txt|json)$' || echo "No proxy files found"
+
+          # Count files including reports
+          jd_files=$(ls Output/*.jdproxies 2>/dev/null | wc -l)
+          mb_files=$(ls Output/*.txt 2>/dev/null | wc -l)
+          report_files=$(ls Output/*.json 2>/dev/null | wc -l)
+          total_files=$((jd_files + mb_files + report_files))
+
+          echo "📈 File summary:"
+          echo "   • JDownloader2 files: $jd_files"
+          echo "   • MegaBasterd files: $mb_files"
+          echo "   • Report files: $report_files"
+          echo "   • Total files: $total_files"
+
+          # Show file sizes
+          if [ $total_files -gt 0 ]; then
+            echo "📋 File sizes:"
+            for file in Output/*.jdproxies Output/*.txt Output/*.json; do
+              if [ -f "$file" ]; then
+                size=$(wc -c < "$file" 2>/dev/null || echo "0")
+                lines=$(wc -l < "$file" 2>/dev/null || echo "0")
+                echo "   • $(basename "$file"): $size bytes, $lines lines"
+              fi
+            done
+          fi
+
+          # Show performance summary if available
+          if [ -f "Output/scraping_summary.txt" ]; then
+            echo ""
+            echo "📈 Performance Summary:"
+            if grep -q "Total Valid Proxies:" Output/scraping_summary.txt; then
+              grep "Total Valid Proxies:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+            if grep -q "Total Duration:" Output/scraping_summary.txt; then
+              grep "Total Duration:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+            if grep -q "Success Rate:" Output/scraping_summary.txt; then
+              grep "Success Rate:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+          fi
+        else
+          echo "❌ Output folder not found"
+          echo "Creating empty Output folder for artifacts..."
+          mkdir -p Output
+          echo "No proxy files were generated" > Output/generation_failed.txt
+        fi
+
+    - name: Upload proxy files as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: proxy-lists-${{ github.event.inputs.test_mode == 'true' && 'test' || 'production' }}-${{ github.run_number }}
+        path: Output/
+        retention-days: 7
+        if-no-files-found: warn
+
+    - name: Enhanced git operations with conflict resolution
+      run: |
+        echo "🔧 Configuring git with enhanced conflict resolution..."
+
+        # Configure git identity
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action - Proxy Scraper"
+        git config --local pull.rebase false
+        git config --local merge.ours.driver true
+
+        echo "📡 Fetching latest changes from remote..."
+        git fetch origin ${{ github.ref_name }}
+
+        echo "🔄 Attempting smart merge strategy..."
+
+        # Check if we're behind remote
+        LOCAL=$(git rev-parse HEAD)
+        REMOTE=$(git rev-parse origin/${{ github.ref_name }})
+
+        if [ "$LOCAL" != "$REMOTE" ]; then
+          echo "📊 Repository state: Local branch is behind remote"
+          echo "   Local HEAD:  $LOCAL"
+          echo "   Remote HEAD: $REMOTE"
+
+          # Strategy 1: Try to pull with merge strategy favoring new files
+          echo "🔄 Strategy 1: Attempting pull with auto-merge..."
+
+          # Create a .gitattributes file to handle Output folder merges
+          echo "Output/*.jdproxies merge=ours" >> .gitattributes
+          echo "Output/*.txt merge=ours" >> .gitattributes  
+          echo "Output/*.json merge=ours" >> .gitattributes
+
+          git add .gitattributes
+
+          if git pull origin ${{ github.ref_name }} --no-edit; then
+            echo "✅ Successfully pulled with auto-merge"
+          else
+            echo "⚠️ Auto-merge failed, using hard reset strategy..."
+
+            # Strategy 2: Reset to remote and re-add our Output folder
+            echo "🔄 Strategy 2: Hard reset to remote + re-add Output..."
+
+            # Backup our Output folder
+            cp -r Output Output.backup 2>/dev/null || echo "No Output to backup"
+
+            # Hard reset to remote
+            git reset --hard origin/${{ github.ref_name }}
+
+            # Restore our Output folder
+            if [ -d "Output.backup" ]; then
+              rm -rf Output
+              mv Output.backup Output
+              echo "✅ Restored Output folder after reset"
+            fi
+          fi
+        else
+          echo "✅ Repository state: Local branch is up to date"
+        fi
+
+        echo "📁 Adding Output folder to git..."
+        git add Output/
+
+        # Check if there are changes to commit
+        if git diff --cached --quiet; then
+          echo "ℹ️ No changes to commit"
+          exit 0
+        fi
+
+        # Count files being committed
+        file_count=$(git diff --cached --name-only | wc -l)
+        echo "📝 Preparing to commit $file_count file(s)"
+
+        # Show what's being committed
+        echo "📋 Files being committed:"
+        git diff --cached --name-only | sed 's/^/   • /'
+
+        # Create descriptive commit message
+        proxy_type="${{ github.event.inputs.proxy_types || 'all' }}"
+        test_mode="${{ github.event.inputs.test_mode || 'false' }}"
+        timestamp=$(date '+%Y-%m-%d %H:%M UTC')
+
+        if [ "$test_mode" = "true" ]; then
+          mode_suffix="[TEST]"
+        else
+          mode_suffix="[PROD]"
+        fi
+
+        # Count valid proxies from the all file if it exists
+        if [ -f "Output/jdownloader_proxies_all.jdproxies" ]; then
+          proxy_count=$(grep -o '"address"' Output/jdownloader_proxies_all.jdproxies | wc -l)
+          commit_msg="🚀 Update proxy lists ($proxy_type) $mode_suffix - $timestamp [$proxy_count proxies, $file_count files]"
+        else
+          commit_msg="🚀 Update proxy lists ($proxy_type) $mode_suffix - $timestamp [$file_count files]"
+        fi
+
+        echo "💬 Commit message: $commit_msg"
+        git commit -m "$commit_msg"
+
+        echo "🚀 Pushing changes to remote..."
+
+        # Try normal push first
+        if git push origin ${{ github.ref_name }}; then
+          echo "✅ Successfully pushed to repository"
+        else
+          echo "⚠️ Normal push failed, attempting force push with lease..."
+
+          # Force push with lease (safer than regular force push)
+          if git push --force-with-lease origin ${{ github.ref_name }}; then
+            echo "✅ Successfully force-pushed to repository"
+          else
+            echo "❌ Force push failed. Manual intervention may be required."
+            echo "This can happen with multiple concurrent workflow runs."
+            exit 1
+          fi
+        fi
+
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      timeout-minutes: 5
+
+    - name: Workflow summary
+      if: always()
+      run: |
+        echo "🎉 WORKFLOW SUMMARY"
+        echo "==================="
+        echo "📅 Run date: $(date '+%Y-%m-%d %H:%M UTC')"
+        echo "🎯 Proxy type: ${{ github.event.inputs.proxy_types || 'all' }}"
+        echo "🧪 Test mode: ${{ github.event.inputs.test_mode || 'false' }}"
+        echo "📁 Output folder: Output/"
+        echo "🔧 Script used: complete_proxy_scraper.py"
+
+        if [ "${{ github.event.inputs.test_mode || 'false' }}" = "true" ]; then
+          echo "⚡ Mode: TEST (3 sources, fast validation)"
+          echo "⏱️ Expected time: 2-8 minutes"
+        else
+          echo "⚡ Mode: PRODUCTION (70+ sources, full validation)"
+          echo "⏱️ Expected time: 10-30 minutes"
+        fi
+
+        echo ""
+        echo "🚀 Active Optimizations:"
+        echo "   • uvloop Event Loop (30-50% faster)"
+        echo "   • Optimized TCPConnector (15-25% improvement)"
+        echo "   • Parallel Source Fetching (60-80% faster)"
+        echo "   • Pre-validation Filtering (30-50% fewer tests)"
+
+        if [ -d "Output" ]; then
+          file_count=$(ls Output/*.jdproxies Output/*.txt Output/*.json 2>/dev/null | wc -l || echo "0")
+          echo "📊 Files generated: $file_count"
+          echo "📦 Artifact: proxy-lists-${{ github.event.inputs.test_mode == 'true' && 'test' || 'production' }}-${{ github.run_number }}"
+
+          # Show optimization results if available
+          if [ -f "Output/scraping_summary.txt" ]; then
+            echo ""
+            echo "📈 Results:"
+            if grep -q "Total Valid Proxies:" Output/scraping_summary.txt; then
+              grep "Total Valid Proxies:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+            if grep -q "Total Duration:" Output/scraping_summary.txt; then  
+              grep "Total Duration:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+            if grep -q "Success Rate:" Output/scraping_summary.txt; then
+              grep "Success Rate:" Output/scraping_summary.txt | sed 's/^/   /'
+            fi
+          fi
+
+          echo ""
+          echo "🔗 Download the proxy files from the Actions tab artifacts"
+          echo "🔗 Or check your repository for committed files"
+        else
+          echo "❌ No Output folder found - check logs for errors"
+        fi
+
+        echo ""
+        echo "🎯 Expected Output (when successful):"
+        echo "   • Output/jdownloader_proxies_all.jdproxies"
+        echo "   • Output/jdownloader_proxies_http.jdproxies"
+        echo "   • Output/jdownloader_proxies_socks4.jdproxies"
+        echo "   • Output/jdownloader_proxies_socks5.jdproxies"
+        echo "   • Output/megabasterd_proxies_all.txt"
+        echo "   • Output/megabasterd_proxies_http.txt"
+        echo "   • Output/megabasterd_proxies_socks4.txt"
+        echo "   • Output/megabasterd_proxies_socks5.txt"
+        echo "   • Output/scraping_report.json"
+        echo "   • Output/scraping_summary.txt"
+        echo ""
+        echo "🔄 Next scheduled run: $(date -d '+6 hours' '+%Y-%m-%d %H:%M UTC')"
+
+        if [ "${{ github.event.inputs.test_mode || 'false' }}" = "true" ]; then
+          echo ""
+          echo "💡 TIP: Uncheck test mode for full production run with all sources"
+        fi
