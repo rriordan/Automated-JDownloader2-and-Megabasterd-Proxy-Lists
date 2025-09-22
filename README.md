@@ -2,9 +2,9 @@
 Just a vibe-coder ripping off and mashing together the work of https://github.com/imwaitingnow/JDownloader2-jdproxies-creator and https://github.com/MuRongPIG/Proxy-Master to provide fresh proxy lists for JD2 and Megabasterd. 
 
 Great work by both authors. I'm not much of a coder and my contribution here is very minimal:
--Added a few more proxy list sources
--Used AI to tweak the original script
--Used AI to create a workflow that automates the scraping, validation, and generation of proxy lists
+- Added a few more proxy list sources
+- Used AI to tweak the original script
+- Used AI to create a workflow that automates the scraping, validation, and generation of proxy lists
 
 # Function
 
