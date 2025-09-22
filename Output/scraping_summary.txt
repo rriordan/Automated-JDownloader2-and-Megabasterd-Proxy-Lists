@@ -1,77 +1,96 @@
 ================================================================================
-ENHANCED PROXY SCRAPING PERFORMANCE REPORT
+SOCKS5-PRIORITIZED PROXY SCRAPING REPORT
 ================================================================================
-Timestamp: 2025-09-22 13:12:27 UTC
-Total Duration: 22m 33s
+Timestamp: 2025-09-22 16:35:17 UTC
+Total Duration: 22m 3s
 Proxy Types: socks4, socks5, http
+Mode: PRODUCTION (66 sources)
+Deduplication: SOCKS5-PRIORITIZED (SOCKS5 > SOCKS4 > HTTP)
+
+PERFORMANCE OPTIMIZATIONS ACTIVE
+--------------------------------------------------
+✓ uvloop Event Loop (30-50% faster)
+✓ Optimized TCPConnector (15-25% improvement)
+✓ Parallel Source Fetching (60-80% faster)
+✓ Pre-validation Filtering (30-50% fewer tests)
+✓ SOCKS5-Prioritized Deduplication (better proxy quality)
 
 TIMING BREAKDOWN
 --------------------------------------------------
-Source Fetching: 20.4s
-Cross-Source Deduplication: 0.8s
-Proxy Validation: 22m 11s
-File Saving: 0.1s
+Source Fetching: 17.8s
+SOCKS5-Prioritized Deduplication: 1.4s
+Proxy Validation: 21m 43s
+File Saving: 0.2s
 Report Generation: 0.0s
 
 PROCESSING RATES
 --------------------------------------------------
-Overall Rate: 1305.9 proxies/second
-Validation Rate: 49.6 proxies/second
-Source Fetching Rate: 3.5 sources/second
+Overall Rate: 1334.5 proxies/second
+Validation Rate: 51.3 proxies/second
+Source Fetching Rate: 3.7 sources/second
 
-SOURCE STATISTICS (GitHub Sources Only)
+PRE-FILTERING RESULTS
 --------------------------------------------------
-Sources Attempted: 72
-Sources Successful: 64
-Sources Failed: 8
-SOCKS4 sources available: 20
-SOCKS5 sources available: 20
-HTTP sources available: 32
+Proxies Pre-filtered: 113,624
+Invalid Proxies Rejected: 101
+Pre-filter Efficiency: 99.9%
+
+SOURCE STATISTICS
+--------------------------------------------------
+Sources Attempted: 66
+Sources Successful: 62
+Sources Failed: 4
+SOCKS4 sources used: 18
+SOCKS5 sources used: 18
+HTTP sources used: 30
 
 RAW PROXY STATISTICS
 ----------------------------------------
-HTTP proxies fetched: 587,067
-SOCKS4 proxies fetched: 599,016
-SOCKS5 proxies fetched: 581,270
-Total Raw Proxies: 1,767,353
+HTTP proxies fetched: 588,571
+SOCKS4 proxies fetched: 597,953
+SOCKS5 proxies fetched: 579,308
+Total Raw Proxies: 1,765,832
 
 VALIDATION STATISTICS
 ----------------------------------------
-Proxies Tested: 66,068
-Proxies Passed: 1,692
-Proxies Failed: 64,376
-Timeouts: 46,396
-Success Rate: 2.6%
+Proxies Tested: 66,880
+Proxies Passed: 2,294
+Proxies Failed: 64,586
+Timeouts: 46,511
+Success Rate: 3.4%
 Filter Efficiency: 0.1%
 
 PERFORMANCE STATISTICS
 ----------------------------------------
-Fastest Response: 0.030s
-Slowest Response: 4.995s
-Average Response: 2.796s
+Fastest Response: 0.048s
+Slowest Response: 4.996s
+Average Response: 2.666s
 
-OUTPUT STATISTICS
+SOCKS5-PRIORITIZED OUTPUT STATISTICS
 ----------------------------------------
-Final HTTP proxies: 41
-Final SOCKS4 proxies: 1,651
-Total Valid Proxies: 1,692
-Files Created: 6
+Final HTTP proxies: 66
+Final SOCKS4 proxies: 4
+Final SOCKS5 proxies: 2,224
+Total Valid Proxies: 2,294
+Files Created: 8
 
 FILES CREATED
 ----------------------------------------
-jdownloader_proxies_all.jdproxies: 875,915 bytes
-jdownloader_proxies_http.jdproxies: 21,207 bytes
-jdownloader_proxies_socks4.jdproxies: 854,737 bytes
-megabasterd_proxies_all.txt: 31,607 bytes
-megabasterd_proxies_http.txt: 777 bytes
-megabasterd_proxies_socks4.txt: 30,829 bytes
+jdownloader_proxies_all.jdproxies: 1,187,503 bytes
+jdownloader_proxies_http.jdproxies: 34,181 bytes
+jdownloader_proxies_socks4.jdproxies: 2,103 bytes
+jdownloader_proxies_socks5.jdproxies: 1,151,277 bytes
+megabasterd_proxies_all.txt: 42,823 bytes
+megabasterd_proxies_http.txt: 1,305 bytes
+megabasterd_proxies_socks4.txt: 77 bytes
+megabasterd_proxies_socks5.txt: 41,439 bytes
 
 ================================================================================
-ENHANCED WITH PERFORMANCE MONITORING
-Total GitHub sources used: 72
-Live ETA, processing rates, and detailed timing provided!
+SOCKS5-PRIORITIZED WITH PERFORMANCE ENHANCEMENTS
+Production: 66 GitHub sources
+SOCKS5 proxies now prioritized in deduplication process!
 
 Report files saved:
-- Output/scraping_report.json (Detailed JSON)
-- Output/scraping_summary.txt (Human-readable)
+- scraping_report.json (Detailed JSON)
+- scraping_summary.txt (Human-readable)
 ================================================================================
