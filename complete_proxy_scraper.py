@@ -212,6 +212,7 @@ class ProxyScraperConfig:
             # Original source (kept for consistency)
             "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt",
             # Additional GitHub sources
+            "https://raw.githubusercontent.com/rriordan/Proxy-Master/refs/heads/main/socks4.txt",
             "https://raw.githubusercontent.com/mzyui/proxy-list/refs/heads/main/socks4.txt",
             "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks4.txt",
             "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS4_RAW.txt",
@@ -236,6 +237,7 @@ class ProxyScraperConfig:
             # Original source (kept for consistency)  
             "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt",
             # Additional GitHub sources
+            "https://raw.githubusercontent.com/rriordan/Proxy-Master/refs/heads/main/socks5.txt",
             "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
             "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt",
             "https://raw.githubusercontent.com/mzyui/proxy-list/refs/heads/main/socks5.txt",
@@ -260,6 +262,7 @@ class ProxyScraperConfig:
             # Original source (kept for consistency)
             "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt",
             # Additional GitHub sources
+            "https://raw.githubusercontent.com/rriordan/Proxy-Master/refs/heads/main/http.txt",
             "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt",
             "https://github.com/monosans/proxy-list/raw/main/proxies/http.txt",
             "https://raw.githubusercontent.com/mzyui/proxy-list/refs/heads/main/http.txt",
