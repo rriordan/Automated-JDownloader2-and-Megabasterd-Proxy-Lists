@@ -1,3 +1,7 @@
+# Description
+Just a vibe-coder ripping off and mashing together the work of https://github.com/imwaitingnow/JDownloader2-jdproxies-creator and https://github.com/MuRongPIG/Proxy-Master to provide automated proxy lists for JD2 and Megabasterd
+
+
 # Proxy Scraper and Validator
 
 This repository contains a script for fetching, validating, and saving proxies in a format compatible with JDownloader2.
