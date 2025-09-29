@@ -2,22 +2,41 @@
   "customProxyList": [
     {
       "proxy": {
-        "address": "51.161.13.146",
-        "port": 80,
+        "address": "3.38.101.138",
+        "port": 8820,
         "type": "SOCKS4",
         "username": null,
         "password": null,
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 0.12232828140258789
+        "response_time": 3.7437124252319336
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 0.12232828140258789
+      "response_time": 3.7437124252319336
+    },
+    {
+      "proxy": {
+        "address": "115.29.140.201",
+        "port": 1234,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 4.531534194946289
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 4.531534194946289
     }
   ]
 }
