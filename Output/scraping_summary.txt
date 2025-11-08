@@ -1,8 +1,8 @@
 ================================================================================
 SOCKS5-PRIORITIZED PROXY SCRAPING REPORT
 ================================================================================
-Timestamp: 2025-11-07 19:03:17 UTC
-Total Duration: 29m 20s
+Timestamp: 2025-11-08 02:18:09 UTC
+Total Duration: 29m 29s
 Proxy Types: socks4, socks5, http
 Mode: PRODUCTION (66 sources)
 Deduplication: SOCKS5-PRIORITIZED (SOCKS5 > SOCKS4 > HTTP)
@@ -17,23 +17,23 @@ PERFORMANCE OPTIMIZATIONS ACTIVE
 
 TIMING BREAKDOWN
 --------------------------------------------------
-Source Fetching: 24.9s
-SOCKS5-Prioritized Deduplication: 1.8s
-Proxy Validation: 28m 53s
-File Saving: 0.1s
+Source Fetching: 24.6s
+SOCKS5-Prioritized Deduplication: 1.9s
+Proxy Validation: 29m 2s
+File Saving: 0.2s
 Report Generation: 0.0s
 
 PROCESSING RATES
 --------------------------------------------------
-Overall Rate: 1383.7 proxies/second
-Validation Rate: 53.2 proxies/second
-Source Fetching Rate: 2.6 sources/second
+Overall Rate: 1379.1 proxies/second
+Validation Rate: 53.3 proxies/second
+Source Fetching Rate: 2.7 sources/second
 
 PRE-FILTERING RESULTS
 --------------------------------------------------
-Proxies Pre-filtered: 140,588
-Invalid Proxies Rejected: 138
-Pre-filter Efficiency: 99.9%
+Proxies Pre-filtered: 100,074
+Invalid Proxies Rejected: 8
+Pre-filter Efficiency: 100.0%
 
 SOURCE STATISTICS
 --------------------------------------------------
@@ -46,44 +46,44 @@ HTTP sources used: 30
 
 RAW PROXY STATISTICS
 ----------------------------------------
-HTTP proxies fetched: 891,094
-SOCKS4 proxies fetched: 783,587
-SOCKS5 proxies fetched: 761,204
-Total Raw Proxies: 2,435,885
+HTTP proxies fetched: 892,021
+SOCKS4 proxies fetched: 784,071
+SOCKS5 proxies fetched: 764,049
+Total Raw Proxies: 2,440,141
 
 VALIDATION STATISTICS
 ----------------------------------------
-Proxies Tested: 92,309
-Proxies Passed: 1,858
-Proxies Failed: 90,451
-Timeouts: 63,067
-Success Rate: 2.0%
+Proxies Tested: 92,971
+Proxies Passed: 2,754
+Proxies Failed: 90,217
+Timeouts: 63,033
+Success Rate: 3.0%
 Filter Efficiency: 0.1%
 
 PERFORMANCE STATISTICS
 ----------------------------------------
-Fastest Response: 0.049s
-Slowest Response: 4.998s
-Average Response: 2.655s
+Fastest Response: 0.045s
+Slowest Response: 4.983s
+Average Response: 2.418s
 
 SOCKS5-PRIORITIZED OUTPUT STATISTICS
 ----------------------------------------
-Final HTTP proxies: 79
+Final HTTP proxies: 97
 Final SOCKS4 proxies: 24
-Final SOCKS5 proxies: 1,755
-Total Valid Proxies: 1,858
+Final SOCKS5 proxies: 2,633
+Total Valid Proxies: 2,754
 Files Created: 8
 
 FILES CREATED
 ----------------------------------------
-jdownloader_proxies_all.jdproxies: 962,180 bytes
-jdownloader_proxies_http.jdproxies: 40,830 bytes
-jdownloader_proxies_socks4.jdproxies: 12,449 bytes
-jdownloader_proxies_socks5.jdproxies: 908,959 bytes
-megabasterd_proxies_all.txt: 35,078 bytes
-megabasterd_proxies_http.txt: 1,500 bytes
-megabasterd_proxies_socks4.txt: 445 bytes
-megabasterd_proxies_socks5.txt: 33,131 bytes
+jdownloader_proxies_all.jdproxies: 1,426,056 bytes
+jdownloader_proxies_http.jdproxies: 50,162 bytes
+jdownloader_proxies_socks4.jdproxies: 12,468 bytes
+jdownloader_proxies_socks5.jdproxies: 1,363,484 bytes
+megabasterd_proxies_all.txt: 51,604 bytes
+megabasterd_proxies_http.txt: 1,842 bytes
+megabasterd_proxies_socks4.txt: 452 bytes
+megabasterd_proxies_socks5.txt: 49,308 bytes
 
 ================================================================================
 SOCKS5-PRIORITIZED WITH PERFORMANCE ENHANCEMENTS
