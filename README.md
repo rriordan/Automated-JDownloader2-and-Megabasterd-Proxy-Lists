@@ -1,47 +1,108 @@
 # Automated Proxy Lists for JDownloader2 and MegaBasterd
 
-Automated pipeline that aggregates free proxy lists from multiple public sources, validates each proxy through a live performance check, and exports sorted, tool-specific output files for use in JDownloader2 and MegaBasterd. Runs on a GitHub Actions schedule every 6 hours so the lists stay current without manual effort.
+Automated pipeline that collects public HTTP, SOCKS4, and SOCKS5 proxy candidates, validates their connectivity, and publishes refreshed proxy lists for JDownloader2 and MegaBasterd.
 
----
+The GitHub Actions workflow runs every six hours and commits the latest validated output to this repository.
+
+> [!WARNING]
+> Public proxies are untrusted infrastructure. Do not use these lists for credentials, personal data, financial activity, or other sensitive traffic. Availability, performance, and anonymity can change without notice. Use them only where permitted by applicable law and the relevant service terms.
+
+## Latest proxy lists
+
+Generated files are committed to [`Output/`](./Output).
+
+| Target | Combined | HTTP | SOCKS4 | SOCKS5 |
+| --- | --- | --- | --- | --- |
+| JDownloader2 (`.jdproxies`) | [`all`](./Output/jdownloader_proxies_all.jdproxies) | [`http`](./Output/jdownloader_proxies_http.jdproxies) | [`socks4`](./Output/jdownloader_proxies_socks4.jdproxies) | [`socks5`](./Output/jdownloader_proxies_socks5.jdproxies) |
+| MegaBasterd (`IP:port`) | [`all`](./Output/megabasterd_proxies_all.txt) | [`http`](./Output/megabasterd_proxies_http.txt) | [`socks4`](./Output/megabasterd_proxies_socks4.txt) | [`socks5`](./Output/megabasterd_proxies_socks5.txt) |
+
+Latest-run metadata:
+
+- [`scraping_summary.txt`](./Output/scraping_summary.txt) — human-readable result summary
+- [`scraping_report.json`](./Output/scraping_report.json) — structured metrics and run configuration
 
 ## How it works
 
-1. **Aggregate** — pulls proxy candidates from multiple public sources, covering HTTP, SOCKS4, and SOCKS5 protocols
-2. **Validate** — tests each candidate for reachability, response time, and connectivity; drops non-responsive proxies
-3. **Export** — writes validated proxies in two formats: JDownloader2-compatible JSON and plain IP:Port text for MegaBasterd
+1. **Collect** — fetches candidates from multiple public sources.
+2. **Normalize and deduplicate** — rejects malformed entries and collapses duplicates, prioritizing SOCKS5 when the same endpoint is present under multiple protocols.
+3. **Validate** — checks connectivity against a live endpoint and records response times.
+4. **Export** — creates combined and protocol-specific lists for both supported applications.
+5. **Publish** — GitHub Actions refreshes and commits the output on schedule.
 
-Lists are available combined (all protocols) or split by protocol type.
-
----
-
-## Output
-
-| Format | Location | Compatible with |
-|--------|----------|----------------|
-| JSON (structured) | `Output/` | JDownloader2 |
-| IP:Port (plain text) | `Output/` | MegaBasterd |
-| Per-protocol splits | `Output/` | Both |
-
----
+Only proxies that pass the validation step are published. Passing once does not guarantee future availability or compatibility with a particular service.
 
 ## Automation
 
-The scraper runs automatically via GitHub Actions on a 6-hour cron schedule. It can also be triggered manually from the Actions tab with options to target a specific protocol type or run in test mode (reduced source set).
+The workflow is defined in [`.github/workflows/complete-proxy-scraper.yml`](./.github/workflows/complete-proxy-scraper.yml).
 
-**Schedule:** every 6 hours  
-**Manual trigger:** supported — select protocol type (all / http / socks4 / socks5)
+- **Scheduled:** every six hours
+- **Manual runs:** available from the repository's **Actions** tab
+- **Options:** `all`, `http`, `socks4`, or `socks5`; optional reduced-source test mode
 
----
+## Use with JDownloader2
 
-## Credits
+Download the appropriate `.jdproxies` file and import it through JDownloader2's proxy-list configuration. Choose a protocol-specific list when you need to restrict the proxy type, or the combined list when you do not.
 
-This project builds on the work of two excellent repositories:
+## Use with MegaBasterd
 
-- **[JDownloader2-jdproxies-creator](https://github.com/imwaitingnow/JDownloader2-jdproxies-creator)** by [imwaitingnow](https://github.com/imwaitingnow)
-- **[Proxy-Master](https://github.com/MuRongPIG/Proxy-Master)** by [MuRongPIG](https://github.com/MuRongPIG)
+Download one of the plain-text `IP:port` files and add its entries through MegaBasterd's proxy configuration. Use a protocol-specific list when your MegaBasterd configuration requires one.
 
-My additions: expanded source list, GitHub Actions workflow for scheduled automation, and output format adjustments for MegaBasterd compatibility.
+## Run locally
 
-Additional prior art:
+### Requirements
+
+- Python 3.10+
+- Network access to the configured source URLs and validation endpoint
+
+```bash
+git clone https://github.com/rriordan/Automated-JDownloader2-and-Megabasterd-Proxy-Lists.git
+cd Automated-JDownloader2-and-Megabasterd-Proxy-Lists
+
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Run a full scrape:
+
+```bash
+python complete_proxy_scraper.py --proxy-type all
+```
+
+Run a single protocol:
+
+```bash
+python complete_proxy_scraper.py --proxy-type socks5
+```
+
+Run the reduced test source set:
+
+```bash
+python complete_proxy_scraper.py --proxy-type all --test-mode
+```
+
+Generated files are written to `Output/`.
+
+## Output format
+
+| File pattern | Format | Intended use |
+| --- | --- | --- |
+| `jdownloader_proxies_*.jdproxies` | JDownloader2 JSON proxy-list structure | JDownloader2 |
+| `megabasterd_proxies_*.txt` | One `IP:port` endpoint per line | MegaBasterd |
+| `scraping_report.json` | Structured metrics and run configuration | Analysis and automation |
+| `scraping_summary.txt` | Human-readable run report | Quick inspection |
+
+## Project status
+
+This repository publishes automatically generated output. Public proxy quality and availability vary continuously; consult the timestamp and validation metrics in the latest report rather than assuming any list will remain valid.
+
+## Attribution and license
+
+This project builds on and was informed by prior work:
+
+- [imwaitingnow/JDownloader2-jdproxies-creator](https://github.com/imwaitingnow/JDownloader2-jdproxies-creator)
+- [MuRongPIG/Proxy-Master](https://github.com/MuRongPIG/Proxy-Master)
 - [TheSpeedX/PROXY-List](https://github.com/TheSpeedX/PROXY-List)
 - [masterofobzene/JDproxygenerator](https://github.com/masterofobzene/JDproxygenerator)
+
+See [`NOTICE`](./NOTICE) for attribution details and [`LICENSE`](./LICENSE) for license terms.
