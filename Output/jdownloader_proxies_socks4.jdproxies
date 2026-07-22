@@ -2,6 +2,25 @@
   "customProxyList": [
     {
       "proxy": {
+        "address": "185.72.216.6",
+        "port": 80,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 0.3991425037384033
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 0.3991425037384033
+    },
+    {
+      "proxy": {
         "address": "8.220.136.174",
         "port": 8080,
         "type": "SOCKS4",
@@ -10,75 +29,37 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.5235280990600586
+        "response_time": 2.520206928253174
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.5235280990600586
+      "response_time": 2.520206928253174
     },
     {
       "proxy": {
-        "address": "120.25.189.254",
-        "port": 5060,
+        "address": "47.116.210.163",
+        "port": 8081,
         "type": "SOCKS4",
         "username": null,
         "password": null,
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.5284922122955322
+        "response_time": 2.5307135581970215
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.5284922122955322
+      "response_time": 2.5307135581970215
     },
     {
       "proxy": {
-        "address": "39.102.211.64",
-        "port": 9098,
-        "type": "SOCKS4",
-        "username": null,
-        "password": null,
-        "preferNativeImplementation": false,
-        "resolveHostName": false,
-        "connectMethodPreferred": false,
-        "response_time": 2.5405449867248535
-      },
-      "rangeRequestsSupported": true,
-      "filter": null,
-      "pac": false,
-      "reconnectSupported": false,
-      "enabled": true,
-      "response_time": 2.5405449867248535
-    },
-    {
-      "proxy": {
-        "address": "39.102.208.189",
-        "port": 8443,
-        "type": "SOCKS4",
-        "username": null,
-        "password": null,
-        "preferNativeImplementation": false,
-        "resolveHostName": false,
-        "connectMethodPreferred": false,
-        "response_time": 2.548143148422241
-      },
-      "rangeRequestsSupported": true,
-      "filter": null,
-      "pac": false,
-      "reconnectSupported": false,
-      "enabled": true,
-      "response_time": 2.548143148422241
-    },
-    {
-      "proxy": {
-        "address": "8.138.149.37",
+        "address": "47.121.182.88",
         "port": 8080,
         "type": "SOCKS4",
         "username": null,
@@ -86,52 +67,52 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.548794984817505
+        "response_time": 2.531810998916626
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.548794984817505
+      "response_time": 2.531810998916626
     },
     {
       "proxy": {
         "address": "8.212.165.164",
-        "port": 5004,
+        "port": 5050,
         "type": "SOCKS4",
         "username": null,
         "password": null,
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.548867702484131
+        "response_time": 2.5331625938415527
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.548867702484131
+      "response_time": 2.5331625938415527
     },
     {
       "proxy": {
-        "address": "39.102.214.152",
-        "port": 9098,
+        "address": "8.212.151.166",
+        "port": 80,
         "type": "SOCKS4",
         "username": null,
         "password": null,
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.5543832778930664
+        "response_time": 2.5486631393432617
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.5543832778930664
+      "response_time": 2.5486631393432617
     },
     {
       "proxy": {
@@ -143,14 +124,71 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.5756630897521973
+        "response_time": 2.5593748092651367
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.5756630897521973
+      "response_time": 2.5593748092651367
+    },
+    {
+      "proxy": {
+        "address": "8.148.24.225",
+        "port": 3128,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.561177968978882
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.561177968978882
+    },
+    {
+      "proxy": {
+        "address": "47.92.82.167",
+        "port": 8443,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.562854290008545
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.562854290008545
+    },
+    {
+      "proxy": {
+        "address": "47.92.82.167",
+        "port": 8081,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.57028865814209
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.57028865814209
     },
     {
       "proxy": {
@@ -162,33 +200,33 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.5864858627319336
+        "response_time": 2.5712080001831055
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.5864858627319336
+      "response_time": 2.5712080001831055
     },
     {
       "proxy": {
-        "address": "39.104.59.56",
-        "port": 8080,
+        "address": "47.92.152.43",
+        "port": 8090,
         "type": "SOCKS4",
         "username": null,
         "password": null,
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.6074185371398926
+        "response_time": 2.579042673110962
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.6074185371398926
+      "response_time": 2.579042673110962
     },
     {
       "proxy": {
@@ -200,14 +238,33 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.6132872104644775
+        "response_time": 2.5838496685028076
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.6132872104644775
+      "response_time": 2.5838496685028076
+    },
+    {
+      "proxy": {
+        "address": "47.119.22.92",
+        "port": 9080,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.58404803276062
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.58404803276062
     },
     {
       "proxy": {
@@ -219,18 +276,18 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.638451337814331
+        "response_time": 2.5875117778778076
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.638451337814331
+      "response_time": 2.5875117778778076
     },
     {
       "proxy": {
-        "address": "8.137.38.48",
+        "address": "47.92.82.167",
         "port": 80,
         "type": "SOCKS4",
         "username": null,
@@ -238,52 +295,14 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.661095142364502
+        "response_time": 2.5876827239990234
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.661095142364502
-    },
-    {
-      "proxy": {
-        "address": "39.104.59.56",
-        "port": 80,
-        "type": "SOCKS4",
-        "username": null,
-        "password": null,
-        "preferNativeImplementation": false,
-        "resolveHostName": false,
-        "connectMethodPreferred": false,
-        "response_time": 2.6726744174957275
-      },
-      "rangeRequestsSupported": true,
-      "filter": null,
-      "pac": false,
-      "reconnectSupported": false,
-      "enabled": true,
-      "response_time": 2.6726744174957275
-    },
-    {
-      "proxy": {
-        "address": "39.104.23.154",
-        "port": 9080,
-        "type": "SOCKS4",
-        "username": null,
-        "password": null,
-        "preferNativeImplementation": false,
-        "resolveHostName": false,
-        "connectMethodPreferred": false,
-        "response_time": 2.676744222640991
-      },
-      "rangeRequestsSupported": true,
-      "filter": null,
-      "pac": false,
-      "reconnectSupported": false,
-      "enabled": true,
-      "response_time": 2.676744222640991
+      "response_time": 2.5876827239990234
     },
     {
       "proxy": {
@@ -295,14 +314,166 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.776217222213745
+        "response_time": 2.588801622390747
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.776217222213745
+      "response_time": 2.588801622390747
+    },
+    {
+      "proxy": {
+        "address": "39.102.208.23",
+        "port": 9080,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.5893826484680176
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.5893826484680176
+    },
+    {
+      "proxy": {
+        "address": "47.92.82.167",
+        "port": 8085,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.5894274711608887
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.5894274711608887
+    },
+    {
+      "proxy": {
+        "address": "47.116.181.146",
+        "port": 8081,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.5912177562713623
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.5912177562713623
+    },
+    {
+      "proxy": {
+        "address": "47.109.83.196",
+        "port": 8080,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.595874071121216
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.595874071121216
+    },
+    {
+      "proxy": {
+        "address": "47.92.152.43",
+        "port": 8080,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.5994086265563965
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.5994086265563965
+    },
+    {
+      "proxy": {
+        "address": "39.102.214.152",
+        "port": 9098,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.6044466495513916
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.6044466495513916
+    },
+    {
+      "proxy": {
+        "address": "47.92.82.167",
+        "port": 1088,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.616870403289795
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.616870403289795
+    },
+    {
+      "proxy": {
+        "address": "47.92.82.167",
+        "port": 8080,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.6173031330108643
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.6173031330108643
     },
     {
       "proxy": {
@@ -314,14 +485,90 @@
         "preferNativeImplementation": false,
         "resolveHostName": false,
         "connectMethodPreferred": false,
-        "response_time": 2.81652569770813
+        "response_time": 2.6188764572143555
       },
       "rangeRequestsSupported": true,
       "filter": null,
       "pac": false,
       "reconnectSupported": false,
       "enabled": true,
-      "response_time": 2.81652569770813
+      "response_time": 2.6188764572143555
+    },
+    {
+      "proxy": {
+        "address": "39.102.208.236",
+        "port": 8090,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.6249566078186035
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.6249566078186035
+    },
+    {
+      "proxy": {
+        "address": "39.104.27.89",
+        "port": 8008,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.6444215774536133
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.6444215774536133
+    },
+    {
+      "proxy": {
+        "address": "8.137.38.48",
+        "port": 80,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 2.7765867710113525
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 2.7765867710113525
+    },
+    {
+      "proxy": {
+        "address": "8.211.200.183",
+        "port": 6969,
+        "type": "SOCKS4",
+        "username": null,
+        "password": null,
+        "preferNativeImplementation": false,
+        "resolveHostName": false,
+        "connectMethodPreferred": false,
+        "response_time": 4.330900430679321
+      },
+      "rangeRequestsSupported": true,
+      "filter": null,
+      "pac": false,
+      "reconnectSupported": false,
+      "enabled": true,
+      "response_time": 4.330900430679321
     }
   ]
 }
