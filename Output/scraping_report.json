@@ -1,7 +1,7 @@
 {
   "scraping_session": {
-    "timestamp": "2026-08-16T13:02:01.414406",
-    "duration_seconds": 809.27,
+    "timestamp": "2026-08-16T18:48:46.792028",
+    "duration_seconds": 808.97,
     "proxy_types_requested": [
       "socks4",
       "socks5",
@@ -23,54 +23,54 @@
     }
   },
   "timing_breakdown": {
-    "total_duration": 809.27,
-    "fetching_duration": 5.2,
-    "deduplication_duration": 0.34,
-    "validation_duration": 803.63,
-    "saving_duration": 0.09,
+    "total_duration": 808.97,
+    "fetching_duration": 5.05,
+    "deduplication_duration": 0.32,
+    "validation_duration": 803.47,
+    "saving_duration": 0.13,
     "reporting_duration": 0.0
   },
   "processing_rates": {
-    "total_proxies_per_second": 583.85,
-    "validation_proxies_per_second": 54.72,
-    "sources_per_second": 12.69
+    "total_proxies_per_second": 583.76,
+    "validation_proxies_per_second": 55.26,
+    "sources_per_second": 13.07
   },
   "source_statistics": {
     "sources_attempted": 66,
     "sources_successful": 56,
     "sources_failed": 10,
     "raw_proxies_by_type": {
-      "socks4": 113475,
-      "socks5": 112091,
-      "http": 246924
+      "socks4": 113575,
+      "socks5": 111497,
+      "http": 247169
     },
-    "total_raw_proxies": 472490
+    "total_raw_proxies": 472241
   },
   "pre_filtering_statistics": {
     "pre_filter_passed": 0,
-    "pre_filter_rejected": 147,
+    "pre_filter_rejected": 1327,
     "pre_filter_efficiency": 0.0
   },
   "validation_statistics": {
-    "proxies_tested": 43975,
-    "proxies_passed": 1077,
-    "proxies_failed": 42898,
-    "timeouts": 33672,
-    "success_rate_percent": 2.45,
-    "filter_efficiency_percent": 0.23
+    "proxies_tested": 44398,
+    "proxies_passed": 1684,
+    "proxies_failed": 42714,
+    "timeouts": 33512,
+    "success_rate_percent": 3.79,
+    "filter_efficiency_percent": 0.36
   },
   "performance_statistics": {
-    "fastest_response_time": 0.084,
-    "slowest_response_time": 4.934,
-    "average_response_time": 2.224
+    "fastest_response_time": 0.054,
+    "slowest_response_time": 4.998,
+    "average_response_time": 2.311
   },
   "output_statistics": {
     "final_valid_proxies_by_type": {
-      "HTTP": 432,
-      "SOCKS5": 623,
-      "SOCKS4": 22
+      "HTTP": 535,
+      "SOCKS5": 1125,
+      "SOCKS4": 24
     },
-    "total_valid_proxies": 1077,
+    "total_valid_proxies": 1684,
     "files_created": [
       "Output/jdownloader_proxies_all.jdproxies",
       "Output/jdownloader_proxies_http.jdproxies",
